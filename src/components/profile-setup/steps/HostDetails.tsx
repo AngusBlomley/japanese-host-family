@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -54,12 +53,12 @@ const HostDetails = ({
       formData.address &&
       formData.city &&
       formData.prefecture &&
-      formData.postalCode &&
-      formData.licenseNumber &&
-      formData.licenseExpiry &&
-      formData.availableFrom &&
-      formData.availableTo &&
-      formData.pricePerNight > 0
+      formData.postal_code &&
+      formData.license_number &&
+      formData.license_expiry &&
+      formData.available_from &&
+      formData.available_to &&
+      formData.price_per_night > 0
     );
   };
 
@@ -100,8 +99,8 @@ const HostDetails = ({
           <Label htmlFor="postalCode">Postal Code</Label>
           <Input
             id="postalCode"
-            value={formData.postalCode}
-            onChange={(e) => updateForm("postalCode", e.target.value)}
+            value={formData.postal_code}
+            onChange={(e) => updateForm("postal_code", e.target.value)}
             required
           />
         </div>
@@ -112,8 +111,8 @@ const HostDetails = ({
           <Label htmlFor="licenseNumber">Host License Number</Label>
           <Input
             id="licenseNumber"
-            value={formData.licenseNumber}
-            onChange={(e) => updateForm("licenseNumber", e.target.value)}
+            value={formData.license_number}
+            onChange={(e) => updateForm("license_number", e.target.value)}
             required
           />
         </div>
@@ -122,8 +121,8 @@ const HostDetails = ({
           <Input
             id="licenseExpiry"
             type="date"
-            value={formData.licenseExpiry}
-            onChange={(e) => updateForm("licenseExpiry", e.target.value)}
+            value={formData.license_expiry}
+            onChange={(e) => updateForm("license_expiry", e.target.value)}
             required
           />
         </div>
@@ -133,8 +132,8 @@ const HostDetails = ({
         <div>
           <Label htmlFor="accommodationType">Accommodation Type</Label>
           <Select
-            value={formData.accommodationType}
-            onValueChange={(value) => updateForm("accommodationType", value)}
+            value={formData.accommodation_type}
+            onValueChange={(value) => updateForm("accommodation_type", value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select type" />
@@ -148,8 +147,8 @@ const HostDetails = ({
         <div>
           <Label htmlFor="roomType">Room Type</Label>
           <Select
-            value={formData.roomType}
-            onValueChange={(value) => updateForm("roomType", value)}
+            value={formData.room_type}
+            onValueChange={(value) => updateForm("room_type", value)}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select type" />
@@ -192,12 +191,12 @@ const HostDetails = ({
             <div key={rule} className="flex items-center space-x-2">
               <Checkbox
                 id={rule}
-                checked={formData.houseRules.includes(rule)}
+                checked={formData.house_rules.includes(rule)}
                 onCheckedChange={(checked) => {
                   const newRules = checked
-                    ? [...formData.houseRules, rule]
-                    : formData.houseRules.filter((r: string) => r !== rule);
-                  updateForm("houseRules", newRules);
+                    ? [...formData.house_rules, rule]
+                    : formData.house_rules.filter((r: string) => r !== rule);
+                  updateForm("house_rules", newRules);
                 }}
               />
               <label htmlFor={rule} className="text-sm">
@@ -215,8 +214,8 @@ const HostDetails = ({
             id="maxGuests"
             type="number"
             min="1"
-            value={formData.maxGuests}
-            onChange={(e) => updateForm("maxGuests", parseInt(e.target.value))}
+            value={formData.max_guests}
+            onChange={(e) => updateForm("max_guests", parseInt(e.target.value))}
             required
           />
         </div>
@@ -226,9 +225,9 @@ const HostDetails = ({
             id="pricePerNight"
             type="number"
             min="0"
-            value={formData.pricePerNight}
+            value={formData.price_per_night}
             onChange={(e) =>
-              updateForm("pricePerNight", parseInt(e.target.value))
+              updateForm("price_per_night", parseInt(e.target.value))
             }
             required
           />
@@ -241,8 +240,8 @@ const HostDetails = ({
           <Input
             id="availableFrom"
             type="date"
-            value={formData.availableFrom}
-            onChange={(e) => updateForm("availableFrom", e.target.value)}
+            value={formData.available_from}
+            onChange={(e) => updateForm("available_from", e.target.value)}
             required
           />
         </div>
@@ -251,8 +250,8 @@ const HostDetails = ({
           <Input
             id="availableTo"
             type="date"
-            value={formData.availableTo}
-            onChange={(e) => updateForm("availableTo", e.target.value)}
+            value={formData.available_to}
+            onChange={(e) => updateForm("available_to", e.target.value)}
             required
           />
         </div>

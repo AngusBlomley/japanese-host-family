@@ -50,10 +50,10 @@ const BasicInfo = ({
 
   const isValid = () => {
     return (
-      formData.firstName &&
-      formData.lastName &&
-      formData.phoneNumber &&
-      formData.dateOfBirth &&
+      formData.first_name &&
+      formData.last_name &&
+      formData.phone_number &&
+      formData.date_of_birth &&
       formData.nationality &&
       formData.languages.length > 0
     );
@@ -66,8 +66,8 @@ const BasicInfo = ({
           <Label htmlFor="firstName">First Name</Label>
           <Input
             id="firstName"
-            value={formData.firstName}
-            onChange={(e) => updateForm("firstName", e.target.value)}
+            value={formData.first_name}
+            onChange={(e) => updateForm("first_name", e.target.value)}
             required
           />
         </div>
@@ -75,8 +75,8 @@ const BasicInfo = ({
           <Label htmlFor="lastName">Last Name</Label>
           <Input
             id="lastName"
-            value={formData.lastName}
-            onChange={(e) => updateForm("lastName", e.target.value)}
+            value={formData.last_name}
+            onChange={(e) => updateForm("last_name", e.target.value)}
             required
           />
         </div>
@@ -87,8 +87,8 @@ const BasicInfo = ({
         <Input
           id="phoneNumber"
           type="tel"
-          value={formData.phoneNumber}
-          onChange={(e) => updateForm("phoneNumber", e.target.value)}
+          value={formData.phone_number}
+          onChange={(e) => updateForm("phone_number", e.target.value)}
           required
         />
       </div>
@@ -98,8 +98,8 @@ const BasicInfo = ({
         <Input
           id="dateOfBirth"
           type="date"
-          value={formData.dateOfBirth}
-          onChange={(e) => updateForm("dateOfBirth", e.target.value)}
+          value={formData.date_of_birth}
+          onChange={(e) => updateForm("date_of_birth", e.target.value)}
           required
         />
       </div>

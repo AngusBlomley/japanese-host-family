@@ -27,6 +27,3 @@ export const supabase = createClient<Database>(
     },
   }
 );
-
-console.log("URL:", SUPABASE_URL);
-console.log("Key exists:", !!SUPABASE_PUBLISHABLE_KEY);

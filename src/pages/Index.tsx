@@ -11,7 +11,6 @@ const Index = () => {
   const [user, setUser] = useState<User | null>(null);
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
 
-
   useEffect(() => {
     const checkUserProfile = async () => {
       const {
@@ -22,24 +21,22 @@ const Index = () => {
         return;
       }
 
-      setUser(user);
-
       // Check both profile tables
       const { data: hostProfile } = await supabase
         .from("host_profiles")
-        .select("profileComplete")
-        .eq("userId", user.id)
+        .select("profile_complete")
+        .eq("user_id", user.id)
         .single();
 
       const { data: guestProfile } = await supabase
         .from("guest_profiles")
-        .select("profileComplete")
-        .eq("userId", user.id)
+        .select("profile_complete")
+        .eq("user_id", user.id)
         .single();
 
       // User has a complete profile if either profile exists and is complete
       const isComplete =
-        (hostProfile?.profileComplete || guestProfile?.profileComplete) ??
+        (hostProfile?.profile_complete || guestProfile?.profile_complete) ??
         false;
       setProfileComplete(isComplete);
     };

@@ -18,10 +18,10 @@ const steps = {
 
 // Common form fields that should be required
 type RequiredFormFields = {
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  dateOfBirth: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  date_of_birth: string;
   nationality: string;
   bio: string;
   languages: string[];
@@ -32,28 +32,28 @@ type RequiredHostFields = {
   address: string;
   city: string;
   prefecture: string;
-  postalCode: string;
-  licenseNumber: string;
-  licenseExpiry: string;
-  accommodationType: "house" | "apartment";
-  roomType: "private" | "shared";
-  maxGuests: number;
-  pricePerNight: number;
+  postal_code: string;
+  license_number: string;
+  license_expiry: string;
+  accommodation_type: "house" | "apartment";
+  room_type: "private" | "shared";
+  max_guests: number;
+  price_per_night: number;
   amenities: string[];
-  houseRules: string[];
-  availableFrom: string;
-  availableTo: string;
+  house_rules: string[];
+  available_from: string;
+  available_to: string;
 };
 
 // Guest-specific required fields
 type RequiredGuestFields = {
-  studyPurpose: string;
-  plannedDuration: "1-3" | "3-6" | "6-12" | "12+";
-  startDate: string;
-  budgetMin: number;
-  budgetMax: number;
-  dietaryRestrictions: string[];
-  preferredLocation: string[];
+  study_purpose: string;
+  planned_duration: "1-3" | "3-6" | "6-12" | "12+";
+  start_date: string;
+  budget_min: number;
+  budget_max: number;
+  dietary_restrictions: string[];
+  preferred_location: string[];
 };
 
 type ProfileFormData = RequiredFormFields &
@@ -73,10 +73,10 @@ const ProfileSetup = () => {
       ? JSON.parse(saved)
       : {
           // Basic Info
-          firstName: "",
-          lastName: "",
-          phoneNumber: "",
-          dateOfBirth: "",
+          first_name: "",
+          last_name: "",
+          phone_number: "",
+          date_of_birth: "",
           nationality: "",
           languages: [],
           bio: "",
@@ -86,25 +86,25 @@ const ProfileSetup = () => {
           city: "",
           prefecture: "",
           postalCode: "",
-          licenseNumber: "",
-          licenseExpiry: "",
-          accommodationType: "house",
-          roomType: "private",
-          maxGuests: 1,
+          license_number: "",
+          license_expiry: "",
+          accommodation_type: "house",
+          room_type: "private",
+          max_guests: 1,
           amenities: [],
-          houseRules: [],
-          availableFrom: "",
-          availableTo: "",
-          pricePerNight: 0,
+          house_rules: [],
+          available_from: "",
+          available_to: "",
+          price_per_night: 0,
 
           // Guest Specific
-          studyPurpose: "",
-          plannedDuration: "1-3",
-          dietaryRestrictions: [],
-          preferredLocation: [],
-          startDate: "",
-          budgetMin: 0,
-          budgetMax: 0,
+          study_purpose: "",
+          planned_duration: "1-3",
+          dietary_restrictions: [],
+          preferred_location: [],
+          start_date: "",
+          budget_min: 0,
+          budget_max: 0,
         };
   });
 
@@ -145,10 +145,10 @@ const ProfileSetup = () => {
       const profile = {
         user_id: user.id,
         role,
-        first_name: formData.firstName,
-        last_name: formData.lastName,
-        phone_number: formData.phoneNumber,
-        date_of_birth: formData.dateOfBirth,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone_number: formData.phone_number,
+        date_of_birth: formData.date_of_birth,
         nationality: formData.nationality,
         languages: formData.languages,
         bio: formData.bio,
@@ -159,27 +159,27 @@ const ProfileSetup = () => {
               address: formData.address,
               city: formData.city,
               prefecture: formData.prefecture,
-              postal_code: formData.postalCode,
-              license_number: formData.licenseNumber,
-              license_expiry: formData.licenseExpiry,
-              accommodation_type: formData.accommodationType,
-              room_type: formData.roomType,
-              max_guests: formData.maxGuests,
+              postal_code: formData.postal_code,
+              license_number: formData.license_number,
+              license_expiry: formData.license_expiry,
+              accommodation_type: formData.accommodation_type,
+              room_type: formData.room_type,
+              max_guests: formData.max_guests,
               amenities: formData.amenities,
-              house_rules: formData.houseRules,
-              available_from: formData.availableFrom,
-              available_to: formData.availableTo,
-              price_per_night: formData.pricePerNight,
+              house_rules: formData.house_rules,
+              available_from: formData.available_from,
+              available_to: formData.available_to,
+              price_per_night: formData.price_per_night,
               verified: false,
             }
           : {
-              study_purpose: formData.studyPurpose,
-              planned_duration: formData.plannedDuration,
-              dietary_restrictions: formData.dietaryRestrictions,
-              preferred_location: formData.preferredLocation,
-              start_date: formData.startDate,
-              budget_min: formData.budgetMin,
-              budget_max: formData.budgetMax,
+              study_purpose: formData.study_purpose,
+              planned_duration: formData.planned_duration,
+              dietary_restrictions: formData.dietary_restrictions,
+              preferred_location: formData.preferred_location,
+              start_date: formData.start_date,
+              budget_min: formData.budget_min,
+              budget_max: formData.budget_max,
             }),
       };
 

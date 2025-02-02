@@ -52,11 +52,11 @@ const GuestDetails = ({
 
   const isValid = () => {
     return (
-      formData.studyPurpose &&
-      formData.plannedDuration &&
-      formData.startDate &&
-      formData.budgetMin >= 0 &&
-      formData.budgetMax > formData.budgetMin
+      formData.study_purpose &&
+      formData.planned_duration &&
+      formData.start_date &&
+      formData.budget_min >= 0 &&
+      formData.budget_max > formData.budget_min
     );
   };
 
@@ -66,8 +66,8 @@ const GuestDetails = ({
         <Label htmlFor="studyPurpose">Study Purpose</Label>
         <Textarea
           id="studyPurpose"
-          value={formData.studyPurpose}
-          onChange={(e) => updateForm("studyPurpose", e.target.value)}
+          value={formData.study_purpose}
+          onChange={(e) => updateForm("study_purpose", e.target.value)}
           placeholder="What are your goals for studying in Japan?"
           className="h-32"
           required
@@ -77,8 +77,8 @@ const GuestDetails = ({
       <div>
         <Label htmlFor="plannedDuration">Planned Duration of Stay</Label>
         <Select
-          value={formData.plannedDuration}
-          onValueChange={(value) => updateForm("plannedDuration", value)}
+          value={formData.planned_duration}
+          onValueChange={(value) => updateForm("planned_duration", value)}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select duration" />
@@ -99,14 +99,14 @@ const GuestDetails = ({
             <div key={restriction} className="flex items-center space-x-2">
               <Checkbox
                 id={restriction}
-                checked={formData.dietaryRestrictions.includes(restriction)}
+                checked={formData.dietary_restrictions.includes(restriction)}
                 onCheckedChange={(checked) => {
                   const newRestrictions = checked
-                    ? [...formData.dietaryRestrictions, restriction]
-                    : formData.dietaryRestrictions.filter(
+                    ? [...formData.dietary_restrictions, restriction]
+                    : formData.dietary_restrictions.filter(
                         (r: string) => r !== restriction
                       );
-                  updateForm("dietaryRestrictions", newRestrictions);
+                  updateForm("dietary_restrictions", newRestrictions);
                 }}
               />
               <label htmlFor={restriction} className="text-sm">
@@ -124,14 +124,14 @@ const GuestDetails = ({
             <div key={location} className="flex items-center space-x-2">
               <Checkbox
                 id={location}
-                checked={formData.preferredLocation.includes(location)}
+                checked={formData.preferred_location.includes(location)}
                 onCheckedChange={(checked) => {
                   const newLocations = checked
-                    ? [...formData.preferredLocation, location]
-                    : formData.preferredLocation.filter(
+                    ? [...formData.preferred_location, location]
+                    : formData.preferred_location.filter(
                         (l: string) => l !== location
                       );
-                  updateForm("preferredLocation", newLocations);
+                  updateForm("preferred_location", newLocations);
                 }}
               />
               <label htmlFor={location} className="text-sm">
@@ -147,8 +147,8 @@ const GuestDetails = ({
         <Input
           id="startDate"
           type="date"
-          value={formData.startDate}
-          onChange={(e) => updateForm("startDate", e.target.value)}
+          value={formData.start_date}
+          onChange={(e) => updateForm("start_date", e.target.value)}
           required
         />
       </div>
@@ -160,8 +160,8 @@ const GuestDetails = ({
             id="budgetMin"
             type="number"
             min="0"
-            value={formData.budgetMin}
-            onChange={(e) => updateForm("budgetMin", parseInt(e.target.value))}
+            value={formData.budget_min}
+            onChange={(e) => updateForm("budget_min", parseInt(e.target.value))}
             required
           />
         </div>
@@ -171,8 +171,8 @@ const GuestDetails = ({
             id="budgetMax"
             type="number"
             min="0"
-            value={formData.budgetMax}
-            onChange={(e) => updateForm("budgetMax", parseInt(e.target.value))}
+            value={formData.budget_max}
+            onChange={(e) => updateForm("budget_max", parseInt(e.target.value))}
             required
           />
         </div>
