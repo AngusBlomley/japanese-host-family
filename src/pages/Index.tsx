@@ -1,27 +1,51 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { User } from "@supabase/supabase-js";
 
 const Index = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
+
 
   useEffect(() => {
-    // Check current auth status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
+    const checkUserProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
+      setUser(user);
 
-    return () => subscription.unsubscribe();
-  }, []);
+      // Check both profile tables
+      const { data: hostProfile } = await supabase
+        .from("host_profiles")
+        .select("profileComplete")
+        .eq("userId", user.id)
+        .single();
+
+      const { data: guestProfile } = await supabase
+        .from("guest_profiles")
+        .select("profileComplete")
+        .eq("userId", user.id)
+        .single();
+
+      // User has a complete profile if either profile exists and is complete
+      const isComplete =
+        (hostProfile?.profileComplete || guestProfile?.profileComplete) ??
+        false;
+      setProfileComplete(isComplete);
+    };
+
+    checkUserProfile();
+  }, [navigate]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -48,6 +72,25 @@ const Index = () => {
 
   return (
     <div className="min-h-screen p-8">
+      {profileComplete === false && (
+        <div className="max-w-4xl mx-auto mb-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Incomplete Profile</AlertTitle>
+            <AlertDescription className="flex items-center justify-between">
+              <span>Please complete your profile to access all features.</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/profile-setup")}
+              >
+                Complete Profile
+              </Button>
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-2xl font-bold">Welcome, {user.email}</h1>
