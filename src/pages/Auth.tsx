@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,18 +6,68 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (callback: () => void) => void;
+      execute: (
+        siteKey: string,
+        options: { action: string }
+      ) => Promise<string>;
+    };
+  }
+}
+
+// Use environment variable instead
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_GOOGLE_RECAPTCHA_SITE_KEY;
+
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const verifyRecaptcha = async () => {
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, {
+              action: "signup",
+            });
+            resolve(token);
+          } catch (error) {
+            reject(error);
+          }
+        });
+      });
+    } catch (error) {
+      console.error("reCAPTCHA error:", error);
+      throw new Error("Failed to verify reCAPTCHA");
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
+      if (isResetPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback?reset=true`,
+        });
+        if (error) throw error;
+        toast({
+          title: "Check your email",
+          description: "We've sent you a password reset link.",
+        });
+        setIsResetPassword(false);
+        return;
+      }
+
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -26,9 +76,21 @@ const Auth = () => {
         if (error) throw error;
         navigate("/");
       } else {
+        // Verify passwords match
+        if (password !== confirmPassword) {
+          throw new Error("Passwords do not match");
+        }
+
+        const recaptchaToken = await verifyRecaptcha();
+
         const { error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            data: {
+              captchaToken: recaptchaToken,
+            },
+          },
         });
         if (error) throw error;
         toast({
@@ -78,10 +140,16 @@ const Auth = () => {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div className="text-center">
           <h2 className="text-3xl font-bold">
-            {isLogin ? "Welcome Back" : "Create Account"}
+            {isResetPassword
+              ? "Reset Password"
+              : isLogin
+              ? "Welcome Back"
+              : "Create Account"}
           </h2>
           <p className="mt-2 text-gray-600">
-            Connect with Japanese host families
+            {isResetPassword
+              ? "Enter your email to receive a reset link"
+              : "Connect with Japanese host families"}
           </p>
         </div>
 
@@ -140,34 +208,95 @@ const Auth = () => {
                 required
               />
             </div>
-            <div>
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+
+            {!isResetPassword && (
+              <div>
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
+
+            {!isLogin && !isResetPassword && (
+              <div>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Loading..." : isLogin ? "Sign In" : "Create Account"}
+            {loading
+              ? "Loading..."
+              : isResetPassword
+              ? "Send Reset Link"
+              : isLogin
+              ? "Sign In"
+              : "Create Account"}
           </Button>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
             <button
               type="button"
-              onClick={() => setIsLogin(!isLogin)}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setIsResetPassword(false);
+              }}
               className="text-sm text-blue-600 hover:text-blue-800"
             >
               {isLogin
                 ? "Need an account? Sign up"
                 : "Already have an account? Sign in"}
             </button>
+
+            {isLogin && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsResetPassword(!isResetPassword)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  {isResetPassword ? "Back to login" : "Forgot your password?"}
+                </button>
+              </div>
+            )}
           </div>
         </form>
+
+        {!isLogin && (
+          <p className="text-xs text-gray-500 mt-4 text-center">
+            This site is protected by reCAPTCHA and the Google{" "}
+            <a
+              href="https://policies.google.com/privacy"
+              className="text-blue-500 hover:text-blue-700"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Privacy Policy
+            </a>{" "}
+            and{" "}
+            <a
+              href="https://policies.google.com/terms"
+              className="text-blue-500 hover:text-blue-700"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Terms of Service
+            </a>{" "}
+            apply.
+          </p>
+        )}
       </div>
     </div>
   );

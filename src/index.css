@@ -88,6 +88,27 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  /* Hide reCAPTCHA v3 badge */
+  .grecaptcha-badge {
+    display: none !important;
+  }
+
+  /* Also hide the iframe and container */
+  iframe[src*="recaptcha"] {
+    display: none !important;
+  }
+
+  div[class*="grecaptcha-badge"] {
+    display: none !important;
+  }
+
+  /* Hide any reCAPTCHA-related elements */
+  .grecaptcha-logo,
+  .grecaptcha-error,
+  textarea[name="g-recaptcha-response"] {
+    display: none !important;
+  }
 }
 
 @layer base {
