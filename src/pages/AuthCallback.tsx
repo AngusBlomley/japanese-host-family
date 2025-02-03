@@ -13,13 +13,15 @@ const AuthCallback = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
-  const isReset = searchParams.get("reset") === "true";
+
+  const token = searchParams.get("token");
+  const type = searchParams.get("type");
+  const isReset = type === "recovery" && token;
 
   useEffect(() => {
     if (!isReset) {
       const handleAuthCallback = async () => {
         try {
-          // Get user from auth
           const {
             data: { user },
           } = await supabase.auth.getUser();
@@ -55,10 +57,15 @@ const AuthCallback = () => {
     setLoading(true);
 
     try {
+      if (!token) {
+        throw new Error("No reset token found");
+      }
+
       if (newPassword !== confirmPassword) {
         throw new Error("Passwords do not match");
       }
 
+      // Use the token from the URL to update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -70,7 +77,7 @@ const AuthCallback = () => {
         description: "Your password has been successfully reset.",
       });
 
-      navigate("/");
+      navigate("/auth");
     } catch (error: any) {
       toast({
         title: "Error",
