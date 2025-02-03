@@ -80,8 +80,10 @@ const AuthCallback = () => {
         } else {
           navigate("/dashboard");
         }
-      } catch (error) {
-        console.error("Error in auth callback:", error);
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        console.error("Error in auth callback:", errorMessage);
         navigate("/auth");
       }
     };
@@ -115,10 +117,12 @@ const AuthCallback = () => {
       });
 
       navigate("/auth");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
       toast({
         title: "Error",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

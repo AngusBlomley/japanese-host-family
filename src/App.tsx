@@ -17,6 +17,7 @@ import ProfileSetup from "@/pages/ProfileSetup";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
 import NewListing from "@/pages/NewListing";
+import ListingDetail from "@/pages/listings/[id]";
 
 const queryClient = new QueryClient();
 
@@ -76,6 +77,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/listings/:id"
+            element={
+              <ProtectedRoute>
+                <ListingDetail />
               </ProtectedRoute>
             }
           />

@@ -91,6 +91,7 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
               accept="image/*"
               className="hidden"
               onChange={handlePhotoUpload}
+              aria-label="Upload profile photo"
             />
           </div>
           <div className="flex-1">

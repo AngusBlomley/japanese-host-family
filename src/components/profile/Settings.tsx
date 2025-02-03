@@ -107,7 +107,10 @@ export const Settings = ({ profile }: SettingsProps) => {
           </div>
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            <select className="form-select text-sm">
+            <select
+              className="form-select text-sm"
+              aria-label="Select language"
+            >
               <option value="en">English</option>
               <option value="ja">日本語</option>
             </select>

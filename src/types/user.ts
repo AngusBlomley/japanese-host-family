@@ -103,6 +103,17 @@ export interface Listing {
     language_level?: string;
     minimum_stay_weeks?: number;
   };
+  host: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+    bio: string;
+    rating: number | null;
+    total_ratings: number;
+    nationality: string;
+    languages: string[];
+  };
 }
 
 // Type guards to check role-specific fields

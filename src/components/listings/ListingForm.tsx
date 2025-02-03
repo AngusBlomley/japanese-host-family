@@ -16,7 +16,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import type { Listing } from "@/types/user";
 import {
   Select,
   SelectContent,
@@ -115,6 +114,15 @@ const ListingForm = () => {
   const navigate = useNavigate();
   const [images, setImages] = useState<ImagePreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    total: number;
+    current: number;
+    status: string;
+  }>({
+    total: 0,
+    current: 0,
+    status: "",
+  });
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof listingSchema>>({
@@ -182,14 +190,16 @@ const ListingForm = () => {
 
   const onSubmit = async (values: z.infer<typeof listingSchema>) => {
     try {
-      console.log("Starting form submission with values:", values);
       setIsUploading(true);
+      setUploadProgress({
+        total: images.length,
+        current: 0,
+        status: "Preparing to upload images...",
+      });
 
-      // Get current user's profile for host_id
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      console.log("Current user:", user);
       if (!user) throw new Error("Not authenticated");
 
       const { data: profile } = await supabase
@@ -198,36 +208,35 @@ const ListingForm = () => {
         .eq("user_id", user.id)
         .single();
 
-      console.log("User profile:", profile);
       if (!profile) throw new Error("Profile not found");
 
-      // Upload images first
-      console.log("Starting image upload, images:", images);
+      // Upload images with progress
+      setUploadProgress((prev) => ({ ...prev, status: "Uploading images..." }));
       const imageUrls = await Promise.all(
-        images.map(async ({ file }) => {
+        images.map(async ({ file }, index) => {
           try {
             const fileExt = file.name.split(".").pop();
             const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
             const filePath = `${profile.id}/${fileName}`;
 
-            console.log("Uploading file:", filePath);
-            const { error: uploadError, data } = await supabase.storage
+            const { error: uploadError } = await supabase.storage
               .from("listings")
               .upload(filePath, file, {
                 cacheControl: "3600",
                 upsert: false,
               });
 
-            if (uploadError) {
-              console.error("Error uploading file:", uploadError);
-              throw uploadError;
-            }
+            if (uploadError) throw uploadError;
 
             const {
               data: { publicUrl },
             } = supabase.storage.from("listings").getPublicUrl(filePath);
 
-            console.log("File uploaded, public URL:", publicUrl);
+            setUploadProgress((prev) => ({
+              ...prev,
+              current: index + 1,
+            }));
+
             return publicUrl;
           } catch (error) {
             console.error("Error processing image:", error);
@@ -236,9 +245,8 @@ const ListingForm = () => {
         })
       );
 
-      console.log("All images uploaded, URLs:", imageUrls);
+      setUploadProgress((prev) => ({ ...prev, status: "Creating listing..." }));
 
-      // Then create the listing
       const listingData = {
         ...values,
         host_id: profile.id,
@@ -246,14 +254,10 @@ const ListingForm = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      console.log("Creating listing with data:", listingData);
 
       const { error } = await supabase.from("listings").insert(listingData);
 
-      if (error) {
-        console.error("Error inserting listing:", error);
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
@@ -270,6 +274,11 @@ const ListingForm = () => {
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress({
+        total: 0,
+        current: 0,
+        status: "",
+      });
     }
   };
 
@@ -472,13 +481,20 @@ const ListingForm = () => {
                 <FormField
                   key={item}
                   control={form.control}
-                  name={`pricing.includes.${item}`}
+                  name={
+                    `pricing.includes.${item}` as
+                      | "pricing.includes.utilities"
+                      | "pricing.includes.wifi"
+                      | "pricing.includes.laundry"
+                  }
                   render={({ field }) => (
                     <FormItem className="flex items-center space-x-2">
                       <FormControl>
                         <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                          checked={field.value as boolean}
+                          onCheckedChange={(checked: boolean) =>
+                            field.onChange(checked)
+                          }
                         />
                       </FormControl>
                       <FormLabel className="capitalize">
@@ -506,6 +522,7 @@ const ListingForm = () => {
                   type="button"
                   onClick={() => removeImage(index)}
                   className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-label={`Remove image ${index + 1}`}
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -668,16 +685,48 @@ const ListingForm = () => {
           )}
         />
 
+        {isUploading && (
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>{uploadProgress.status}</span>
+              {uploadProgress.total > 0 && (
+                <span>
+                  {uploadProgress.current} / {uploadProgress.total} images
+                  uploaded
+                </span>
+              )}
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2.5">
+              <div
+                className="bg-primary h-2.5 rounded-full transition-all duration-300"
+                style={{
+                  width: `${
+                    (uploadProgress.current / uploadProgress.total) * 100
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-end space-x-4">
           <Button
             type="button"
             variant="outline"
             onClick={() => navigate("/dashboard")}
+            disabled={isUploading}
           >
             Cancel
           </Button>
           <Button type="submit" disabled={isUploading}>
-            {isUploading ? "Creating..." : "Create Listing"}
+            {isUploading ? (
+              <div className="flex items-center gap-2">
+                <span className="animate-spin">⏳</span>
+                {uploadProgress.status}
+              </div>
+            ) : (
+              "Create Listing"
+            )}
           </Button>
         </div>
       </form>

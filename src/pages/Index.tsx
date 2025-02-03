@@ -6,7 +6,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import Header from "@/components/layout/Header";
-import type { Profile, Listing } from "@/types/user";
+import type { Listing } from "@/types/user";
 import { formatPrice } from "@/lib/pricing";
 import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
@@ -267,8 +267,8 @@ const Index = () => {
   const [profileComplete, setProfileComplete] = useState<boolean | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
+
   const [filters, setFilters] = useState<SearchFilters>({
     location: "",
     priceRange: "all",
@@ -393,33 +393,6 @@ const Index = () => {
 
   const filteredListings = filterListings(listings);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    navigate("/auth");
-  };
-
-  if (!user) {
-    return (
-      <>
-        <Header />
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <div className="text-center space-y-4">
-            <h1 className="text-4xl font-bold mb-4">
-              Welcome to Japanese Host Family Finder
-            </h1>
-            <p className="text-xl text-gray-600 mb-8">
-              Connect with Japanese families for an authentic experience
-            </p>
-            <Button onClick={() => navigate("/auth")} size="lg">
-              Get Started
-            </Button>
-          </div>
-        </div>
-      </>
-    );
-  }
-
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -428,7 +401,23 @@ const Index = () => {
     <>
       <Header />
       <div className="min-h-screen p-8">
-        {profileComplete === false && (
+        {!user && (
+          <div className="container mx-auto py-8 border rounded-lg mb-8">
+            <div className="text-center space-y-4 mb-8">
+              <h1 className="text-4xl font-bold">
+                Welcome to Japanese Host Family Finder
+              </h1>
+              <p className="text-xl text-gray-600">
+                Connect with Japanese families for an authentic experience
+              </p>
+              <Button onClick={() => navigate("/auth")} size="lg">
+                Get Started
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {user && profileComplete === false && (
           <div className="max-w-4xl mx-auto mb-8">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -449,7 +438,7 @@ const Index = () => {
           </div>
         )}
 
-        <div className="container mx-auto py-8 space-y-6">
+        <div className="container mx-auto space-y-6">
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold mb-2">

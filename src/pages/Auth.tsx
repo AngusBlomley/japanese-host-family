@@ -81,20 +81,15 @@ const Auth = () => {
           password,
         });
         if (error) throw error;
-        navigate("/");
+        navigate("/dashboard");
       } else {
-        // Verify passwords match
         if (password !== confirmPassword) {
           throw new Error("Passwords do not match");
         }
 
         const recaptchaToken = await verifyRecaptcha();
 
-        // Sign up the user
-        const {
-          data: { user },
-          error: signUpError,
-        } = await supabase.auth.signUp({
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -104,32 +99,22 @@ const Auth = () => {
           },
         });
 
-        if (signUpError) throw signUpError;
-        if (!user) throw new Error("Signup failed");
-
-        // Create initial profile
-        const { error: profileError } = await supabase.from("profiles").insert([
-          {
-            user_id: user.id,
-            role: "guest", // Temporary default role that will be updated during profile setup
-            first_name: "",
-            last_name: "",
-            profile_complete: false,
-            languages: [],
-          },
-        ]);
-
-        if (profileError) throw profileError;
+        if (signUpError) {
+          console.error("Signup error:", signUpError);
+          throw signUpError;
+        }
 
         toast({
           title: "Success!",
           description: "Please check your email to verify your account.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Auth error:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
     } finally {
@@ -139,14 +124,10 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     try {
-      const redirectUrl = import.meta.env.PROD
-        ? "https://japanese-host-family.vercel.app/auth/callback"
-        : `${window.location.origin}/auth/callback`;
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: redirectUrl,
+          redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
             access_type: "offline",
             prompt: "consent",
@@ -155,10 +136,11 @@ const Auth = () => {
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
+      console.error("Error signing in with Google:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: "Failed to sign in with Google",
         variant: "destructive",
       });
     }

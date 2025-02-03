@@ -14,6 +14,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface HostDashboardProps {
   profile: Profile;
@@ -24,7 +32,7 @@ const ListingCard = ({
   onDelete,
 }: {
   listing: Listing;
-  onDelete: () => void;
+  onDelete: (id: string) => void;
 }) => {
   return (
     <Card className="flex flex-col md:flex-row w-full">
@@ -49,7 +57,11 @@ const ListingCard = ({
             <Button variant="ghost" size="icon">
               <Pencil className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={onDelete}>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onDelete(listing.id)}
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
@@ -104,6 +116,7 @@ const ListingCard = ({
 const HostDashboard = ({ profile }: HostDashboardProps) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [listingToDelete, setListingToDelete] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -129,16 +142,19 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
     }
   };
 
-  const handleDelete = async (listingId: string) => {
+  const handleDelete = async () => {
+    if (!listingToDelete) return;
+
     try {
-      const { error } = await supabase
-        .from("listings")
-        .delete()
-        .eq("id", listingId);
+      const { error } = await supabase.rpc("delete_listing_with_saves", {
+        listing_id_param: listingToDelete,
+      });
 
       if (error) throw error;
 
-      setListings((prev) => prev.filter((listing) => listing.id !== listingId));
+      setListings((prev) =>
+        prev.filter((listing) => listing.id !== listingToDelete)
+      );
       toast({
         title: "Success",
         description: "Listing deleted successfully",
@@ -150,6 +166,8 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
         description: "Failed to delete listing",
         variant: "destructive",
       });
+    } finally {
+      setListingToDelete(null);
     }
   };
 
@@ -189,11 +207,35 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
             <ListingCard
               key={listing.id}
               listing={listing}
-              onDelete={() => handleDelete(listing.id)}
+              onDelete={(id) => setListingToDelete(id)}
             />
           ))}
         </div>
       )}
+
+      <Dialog
+        open={!!listingToDelete}
+        onOpenChange={() => setListingToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Listing</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this listing? This action cannot
+              be undone. Any saved references to this listing will also be
+              removed.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setListingToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

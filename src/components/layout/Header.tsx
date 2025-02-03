@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { LogOut, User } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Header = () => {
   const { user } = useAuth();
@@ -15,8 +17,8 @@ const Header = () => {
     return cn(
       "text-sm font-medium transition-colors",
       isActive
-        ? "text-primary bg-primary/10 px-3 py-2 rounded-md"
-        : "text-gray-700 hover:text-gray-900 px-3 py-2"
+        ? "text-primary bg-primary/10 px-3 py-2 rounded-md hover:bg-gray-100 px-3 py-2 rounded-md"
+        : "text-gray-700 hover:text-gray-900 px-3 py-2 hover:bg-gray-100 px-3 py-2 rounded-md"
     );
   };
 
@@ -35,18 +37,60 @@ const Header = () => {
             </Link>
           </div>
 
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center">
             {user ? (
               <>
                 <Link to="/dashboard" className={getLinkClass("/dashboard")}>
                   Dashboard
                 </Link>
-                <Link to="/profile" className={getLinkClass("/profile")}>
-                  Profile
+
+                {/* Desktop Links */}
+                <div className="hidden md:flex items-center">
+                  <Link to="/profile" className={getLinkClass("/profile")}>
+                    Profile
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-gray-700 hover:text-gray-900"
+                  >
+                    Logout
+                  </Button>
+                </div>
+
+                {/* Mobile Icons */}
+                <div className="flex md:hidden items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => navigate("/profile")}
+                    className="text-gray-700"
+                  >
+                    <User className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleLogout}
+                    className="text-gray-700"
+                  >
+                    <LogOut className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Avatar - always visible */}
+                <Link to="/profile">
+                  <Avatar className="h-8 w-8 ml-2">
+                    <AvatarImage
+                      src={user.user_metadata?.avatar_url || undefined}
+                      alt={user.email || "User avatar"}
+                    />
+                    <AvatarFallback>
+                      {user.email?.charAt(0).toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
                 </Link>
-                <Button variant="outline" size="sm" onClick={handleLogout}>
-                  Logout
-                </Button>
               </>
             ) : (
               <Button
