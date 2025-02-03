@@ -9,11 +9,11 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      host_profiles: {
+      profiles: {
         Row: {
           id: string;
           user_id: string;
-          role: string;
+          role: "host" | "guest";
           first_name: string;
           last_name: string;
           phone_number: string | null;
@@ -21,109 +21,38 @@ export type Database = {
           nationality: string | null;
           languages: string[];
           bio: string | null;
+          avatar_url: string | null;
           profile_complete: boolean;
+          created_at: string;
+          updated_at: string;
+          // Host fields
           address: string | null;
           city: string | null;
           prefecture: string | null;
           postal_code: string | null;
-          license_number: string | null;
-          license_expiry: string | null;
-          accommodation_type: string | null;
-          room_type: string | null;
+          accommodation_type: "house" | "apartment" | null;
+          room_type: "private" | "shared" | null;
           max_guests: number | null;
-          amenities: string[];
-          house_rules: string[];
+          amenities: string[] | null;
+          house_rules: string[] | null;
           available_from: string | null;
           available_to: string | null;
           price_per_night: number | null;
-          verified: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          role: string;
-          first_name: string;
-          last_name: string;
-          phone_number?: string | null;
-          date_of_birth?: string | null;
-          nationality?: string | null;
-          languages?: string[];
-          bio?: string | null;
-          profile_complete?: boolean;
-          address?: string | null;
-          city?: string | null;
-          prefecture?: string | null;
-          postal_code?: string | null;
-          license_number?: string | null;
-          license_expiry?: string | null;
-          accommodation_type?: string | null;
-          room_type?: string | null;
-          max_guests?: number | null;
-          amenities?: string[];
-          house_rules?: string[];
-          available_from?: string | null;
-          available_to?: string | null;
-          price_per_night?: number | null;
-          verified?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          role?: string;
-          first_name?: string;
-          last_name?: string;
-          phone_number?: string | null;
-          date_of_birth?: string | null;
-          nationality?: string | null;
-          languages?: string[];
-          bio?: string | null;
-          profile_complete?: boolean;
-          address?: string | null;
-          city?: string | null;
-          prefecture?: string | null;
-          postal_code?: string | null;
-          license_number?: string | null;
-          license_expiry?: string | null;
-          accommodation_type?: string | null;
-          room_type?: string | null;
-          max_guests?: number | null;
-          amenities?: string[];
-          house_rules?: string[];
-          available_from?: string | null;
-          available_to?: string | null;
-          price_per_night?: number | null;
-          verified?: boolean;
-          created_at?: string;
-        };
-      };
-      guest_profiles: {
-        Row: {
-          id: string;
-          user_id: string;
-          role: string;
-          first_name: string;
-          last_name: string;
-          phone_number: string | null;
-          date_of_birth: string | null;
-          nationality: string | null;
-          languages: string[];
-          bio: string | null;
-          profile_complete: boolean;
+          license_number: string | null;
+          license_expiry: string | null;
+          // Guest fields
           study_purpose: string | null;
-          planned_duration: string | null;
-          dietary_restrictions: string[];
-          preferred_location: string[];
+          planned_duration: "1-3" | "3-6" | "6-12" | "12+" | null;
+          dietary_restrictions: string[] | null;
+          preferred_location: string[] | null;
           start_date: string | null;
           budget_min: number | null;
           budget_max: number | null;
-          created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
-          role: string;
+          role: "host" | "guest";
           first_name: string;
           last_name: string;
           phone_number?: string | null;
@@ -131,20 +60,38 @@ export type Database = {
           nationality?: string | null;
           languages?: string[];
           bio?: string | null;
+          avatar_url?: string | null;
           profile_complete?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          // Host fields
+          address?: string | null;
+          city?: string | null;
+          prefecture?: string | null;
+          postal_code?: string | null;
+          accommodation_type?: "house" | "apartment" | null;
+          room_type?: "private" | "shared" | null;
+          max_guests?: number | null;
+          amenities?: string[] | null;
+          house_rules?: string[] | null;
+          available_from?: string | null;
+          available_to?: string | null;
+          price_per_night?: number | null;
+          license_number?: string | null;
+          license_expiry?: string | null;
+          // Guest fields
           study_purpose?: string | null;
-          planned_duration?: string | null;
-          dietary_restrictions?: string[];
-          preferred_location?: string[];
+          planned_duration?: "1-3" | "3-6" | "6-12" | "12+" | null;
+          dietary_restrictions?: string[] | null;
+          preferred_location?: string[] | null;
           start_date?: string | null;
           budget_min?: number | null;
           budget_max?: number | null;
-          created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
-          role?: string;
+          role?: "host" | "guest";
           first_name?: string;
           last_name?: string;
           phone_number?: string | null;
@@ -152,15 +99,33 @@ export type Database = {
           nationality?: string | null;
           languages?: string[];
           bio?: string | null;
+          avatar_url?: string | null;
           profile_complete?: boolean;
+          created_at?: string;
+          updated_at?: string;
+          // Host fields
+          address?: string | null;
+          city?: string | null;
+          prefecture?: string | null;
+          postal_code?: string | null;
+          accommodation_type?: "house" | "apartment" | null;
+          room_type?: "private" | "shared" | null;
+          max_guests?: number | null;
+          amenities?: string[] | null;
+          house_rules?: string[] | null;
+          available_from?: string | null;
+          available_to?: string | null;
+          price_per_night?: number | null;
+          license_number?: string | null;
+          license_expiry?: string | null;
+          // Guest fields
           study_purpose?: string | null;
-          planned_duration?: string | null;
-          dietary_restrictions?: string[];
-          preferred_location?: string[];
+          planned_duration?: "1-3" | "3-6" | "6-12" | "12+" | null;
+          dietary_restrictions?: string[] | null;
+          preferred_location?: string[] | null;
           start_date?: string | null;
           budget_min?: number | null;
           budget_max?: number | null;
-          created_at?: string;
         };
       };
     };

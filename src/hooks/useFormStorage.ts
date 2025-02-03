@@ -1,12 +1,12 @@
 import { Dispatch, SetStateAction, useCallback } from "react";
 import { STORAGE_KEYS } from "@/constants/storage";
-import { ProfileFormData } from "@/types/user";
+import { Profile } from "@/types/user";
 
 export const useFormStorage = (
-  setFormData: Dispatch<SetStateAction<ProfileFormData>>
+  setFormData: Dispatch<SetStateAction<Profile>>
 ) => {
   const updateForm = useCallback(
-    (field: keyof ProfileFormData, value: unknown) => {
+    (field: keyof Profile, value: unknown) => {
       setFormData((prev) => {
         const newData = { ...prev, [field]: value };
         localStorage.setItem(

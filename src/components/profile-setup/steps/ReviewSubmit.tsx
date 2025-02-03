@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { UserRole, ProfileFormData } from "@/types/user";
+import { UserRole, Profile } from "@/types/user";
 import {
   Card,
   CardContent,
@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 
 interface ReviewSubmitProps {
-  formData: ProfileFormData;
+  formData: Profile;
   role: UserRole;
   onSubmit: () => void;
   onBack: () => void;

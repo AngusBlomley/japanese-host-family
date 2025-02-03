@@ -10,11 +10,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useFormStorage } from "@/hooks/useFormStorage";
-import { ProfileFormData } from "@/types/user";
+import { Profile } from "@/types/user";
 
 interface BasicInfoProps {
-  formData: ProfileFormData;
-  setFormData: (data: ProfileFormData) => void;
+  formData: Profile;
+  setFormData: (data: Profile) => void;
   onNext: () => void;
   onBack: () => void;
 }

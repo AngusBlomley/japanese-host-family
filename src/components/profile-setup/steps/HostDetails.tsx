@@ -9,12 +9,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ProfileFormData } from "@/types/user";
+import { Profile } from "@/types/user";
 import { useFormStorage } from "@/hooks/useFormStorage";
 
 interface HostDetailsProps {
-  formData: ProfileFormData;
-  setFormData: (data: ProfileFormData) => void;
+  formData: Profile;
+  setFormData: (data: Profile) => void;
   onNext: () => void;
   onBack: () => void;
 }

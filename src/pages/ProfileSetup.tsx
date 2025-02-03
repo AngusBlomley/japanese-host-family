@@ -10,6 +10,7 @@ import HostDetails from "@/components/profile-setup/steps/HostDetails";
 import GuestDetails from "@/components/profile-setup/steps/GuestDetails";
 import ReviewSubmit from "@/components/profile-setup/steps/ReviewSubmit";
 import { STORAGE_KEYS } from "@/constants/storage";
+import type { Profile } from "@/types/user";
 
 const steps = {
   host: ["Role", "Basic Info", "Host Details", "Review & Submit"],
@@ -67,7 +68,7 @@ const ProfileSetup = () => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [formData, setFormData] = useState<ProfileFormData>(() => {
+  const [formData, setFormData] = useState<Profile>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.PROFILE_SETUP.FORM_DATA);
     return saved
       ? JSON.parse(saved)
@@ -145,47 +146,12 @@ const ProfileSetup = () => {
       const profile = {
         user_id: user.id,
         role,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone_number: formData.phone_number,
-        date_of_birth: formData.date_of_birth,
-        nationality: formData.nationality,
-        languages: formData.languages,
-        bio: formData.bio,
+        ...formData,
         profile_complete: true,
-        // Add other fields with snake_case for database
-        ...(role === "host"
-          ? {
-              address: formData.address,
-              city: formData.city,
-              prefecture: formData.prefecture,
-              postal_code: formData.postal_code,
-              license_number: formData.license_number,
-              license_expiry: formData.license_expiry,
-              accommodation_type: formData.accommodation_type,
-              room_type: formData.room_type,
-              max_guests: formData.max_guests,
-              amenities: formData.amenities,
-              house_rules: formData.house_rules,
-              available_from: formData.available_from,
-              available_to: formData.available_to,
-              price_per_night: formData.price_per_night,
-              verified: false,
-            }
-          : {
-              study_purpose: formData.study_purpose,
-              planned_duration: formData.planned_duration,
-              dietary_restrictions: formData.dietary_restrictions,
-              preferred_location: formData.preferred_location,
-              start_date: formData.start_date,
-              budget_min: formData.budget_min,
-              budget_max: formData.budget_max,
-            }),
       };
 
-      const { error } = await supabase
-        .from(role === "host" ? "host_profiles" : "guest_profiles")
-        .insert([profile]);
+      // Insert into unified profiles table
+      const { error } = await supabase.from("profiles").insert([profile]);
 
       if (error) throw error;
 
@@ -194,7 +160,6 @@ const ProfileSetup = () => {
         description: "Your profile has been successfully set up.",
       });
 
-      // Clear stored data after successful submission
       localStorage.removeItem(STORAGE_KEYS.PROFILE_SETUP.FORM_DATA);
       localStorage.removeItem(STORAGE_KEYS.PROFILE_SETUP.ROLE);
       navigate("/dashboard");

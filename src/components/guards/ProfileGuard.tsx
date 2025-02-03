@@ -8,53 +8,39 @@ interface ProfileGuardProps {
 
 const ProfileGuard = ({ children }: ProfileGuardProps) => {
   const navigate = useNavigate();
-  const [isChecking, setIsChecking] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
         navigate("/auth");
         return;
       }
 
-      // Check both profile tables
-      const { data: hostProfile } = await supabase
-        .from("host_profiles")
-        .select("profileComplete")
-        .eq("userId", user.id)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("profile_complete")
+        .eq("user_id", user.id)
         .single();
 
-      const { data: guestProfile } = await supabase
-        .from("guest_profiles")
-        .select("profileComplete")
-        .eq("userId", user.id)
-        .single();
-
-      const isComplete = (hostProfile?.profileComplete || guestProfile?.profileComplete) ?? false;
-
-      if (!isComplete) {
+      if (!profile || !profile.profile_complete) {
         navigate("/profile-setup");
         return;
       }
 
-      setIsChecking(false);
+      setLoading(false);
     };
 
     checkProfile();
   }, [navigate]);
 
-  if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold">Loading...</h2>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   return <>{children}</>;
 };
 
-export default ProfileGuard; 
+export default ProfileGuard;

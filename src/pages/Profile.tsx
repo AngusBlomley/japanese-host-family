@@ -1,23 +1,19 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  UserRole,
-  CombinedHostProfile,
-  CombinedGuestProfile,
-} from "@/types/user";
+import { UserRole } from "@/types/user";
+import type { Profile } from "@/types/user";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Star } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { Rating } from "@/components/ui/rating";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -31,14 +27,10 @@ import {
 } from "@/components/ui/select";
 
 const Profile = () => {
-  const [profile, setProfile] = useState<
-    CombinedHostProfile | CombinedGuestProfile | null
-  >(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<UserRole | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedProfile, setEditedProfile] = useState<
-    CombinedHostProfile | CombinedGuestProfile | null
-  >(null);
+  const [editedProfile, setEditedProfile] = useState<Profile | null>(null);
   const [rating, setRating] = useState(0);
   const { toast } = useToast();
 
@@ -60,56 +52,56 @@ const Profile = () => {
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    // First get the base profile
-    const { data: baseProfile } = await supabase
+    // Get the profile
+    const { data: profile, error } = await supabase
       .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    if (!baseProfile) return;
-
-    // Then get the role-specific profile
-    const { data: roleProfile } = await supabase
-      .from(baseProfile.is_host_family ? "host_profiles" : "guest_profiles")
       .select("*")
       .eq("user_id", user.id)
       .single();
 
-    if (roleProfile) {
-      // Combine the profiles
-      const combinedProfile = {
-        ...baseProfile,
-        ...roleProfile,
-      };
-      setProfile(combinedProfile);
-      setRole(baseProfile.is_host_family ? "host" : "guest");
+    if (error) {
+      console.error("Error fetching profile:", error);
+      return;
+    }
+
+    if (profile) {
+      setProfile(profile);
+      setRole(profile.role);
     }
   };
 
   const handleUpdate = async () => {
-    if (!editedProfile) return;
+    if (!editedProfile || !role) return;
 
-    const { error } = await supabase
-      .from(role === "host" ? "host_profiles" : "guest_profiles")
-      .update(editedProfile)
-      .eq("id", editedProfile.id);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
 
-    if (error) {
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update(editedProfile)
+        .eq("user_id", user.id);
+
+      if (updateError) throw updateError;
+
+      // Fetch the latest profile data
+      await fetchProfile();
+      setIsEditing(false);
+
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
       toast({
         title: "Error",
-        description: "Failed to update profile",
+        description: error.message || "Failed to update profile",
         variant: "destructive",
       });
-      return;
     }
-
-    setProfile(editedProfile);
-    setIsEditing(false);
-    toast({
-      title: "Success",
-      description: "Profile updated successfully",
-    });
   };
 
   const handlePhotoUpload = async (
@@ -214,10 +206,10 @@ const Profile = () => {
         </div>
         <div>
           <h1 className="text-2xl font-bold">
-            {profile?.full_name ?? profile?.username}
+            {profile?.first_name} {profile?.last_name}
           </h1>
           <Badge className="mt-2 mb-2">
-            {profile?.is_host_family ? "HOST" : "GUEST"}
+            {profile?.role === "host" ? "HOST" : "GUEST"}
           </Badge>
           <div className="flex items-center space-x-2">
             <Rating value={rating} readonly />
@@ -401,9 +393,9 @@ const Profile = () => {
     onSave,
     onCancel,
   }: {
-    profile: CombinedHostProfile | CombinedGuestProfile;
+    profile: Profile;
     role: UserRole;
-    onSave: (editedProfile: CombinedHostProfile | CombinedGuestProfile) => void;
+    onSave: (editedProfile: Profile) => void;
     onCancel: () => void;
   }) => {
     const [editedProfile, setEditedProfile] = useState(profile);
@@ -468,12 +460,12 @@ const Profile = () => {
             {/* Role-specific fields */}
             {role === "host" ? (
               <HostFields
-                profile={editedProfile as CombinedHostProfile}
+                profile={editedProfile as Profile}
                 updateField={updateField}
               />
             ) : (
               <GuestFields
-                profile={editedProfile as CombinedGuestProfile}
+                profile={editedProfile as Profile}
                 updateField={updateField}
               />
             )}
@@ -493,7 +485,7 @@ const Profile = () => {
     profile,
     updateField,
   }: {
-    profile: CombinedHostProfile;
+    profile: Profile;
     updateField: (field: string, value: string) => void;
   }) => (
     <div className="space-y-4">
@@ -524,7 +516,7 @@ const Profile = () => {
     profile,
     updateField,
   }: {
-    profile: CombinedGuestProfile;
+    profile: Profile;
     updateField: (field: string, value: string) => void;
   }) => (
     <div className="space-y-4">

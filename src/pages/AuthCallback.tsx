@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -18,14 +17,36 @@ const AuthCallback = () => {
 
   useEffect(() => {
     if (!isReset) {
-      // Normal OAuth callback flow
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          navigate("/");
-        } else {
+      const handleAuthCallback = async () => {
+        try {
+          // Get user from auth
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (!user) {
+            navigate("/auth");
+            return;
+          }
+
+          // Check if user has a complete profile
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("profile_complete")
+            .eq("user_id", user.id)
+            .single();
+
+          if (!profile || !profile.profile_complete) {
+            navigate("/profile-setup");
+          } else {
+            navigate("/dashboard");
+          }
+        } catch (error) {
+          console.error("Error in auth callback:", error);
           navigate("/auth");
         }
-      });
+      };
+
+      handleAuthCallback();
     }
   }, [navigate, isReset]);
 
