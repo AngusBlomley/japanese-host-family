@@ -11,6 +11,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from "@/types/user";
 import { useFormStorage } from "@/hooks/useFormStorage";
+import { useToast } from "@/components/ui/use-toast";
 
 interface HostDetailsProps {
   formData: Profile;
@@ -47,19 +48,83 @@ const HostDetails = ({
   onBack,
 }: HostDetailsProps) => {
   const updateForm = useFormStorage(setFormData);
+  const { toast } = useToast();
 
-  const isValid = () => {
-    return (
-      formData.address &&
-      formData.city &&
-      formData.prefecture &&
-      formData.postal_code &&
-      formData.license_number &&
-      formData.license_expiry &&
-      formData.available_from &&
-      formData.available_to &&
-      formData.price_per_night > 0
-    );
+  const validateHostDetails = () => {
+    const errors: string[] = [];
+
+    if (!formData.address?.trim()) {
+      errors.push("Address is required");
+    }
+    if (!formData.city?.trim()) {
+      errors.push("City is required");
+    }
+    if (!formData.prefecture?.trim()) {
+      errors.push("Prefecture is required");
+    }
+    if (!formData.postal_code?.trim()) {
+      errors.push("Postal code is required");
+    }
+    if (!formData.accommodation_type) {
+      errors.push("Accommodation type is required");
+    }
+    if (!formData.room_type) {
+      errors.push("Room type is required");
+    }
+    if (!formData.max_guests || formData.max_guests < 1) {
+      errors.push("Maximum guests must be at least 1");
+    }
+    if (!formData.price_per_night || formData.price_per_night < 0) {
+      errors.push("Price per night must be set");
+    }
+    if (!formData.available_from) {
+      errors.push("Available from date is required");
+    }
+    if (!formData.available_to) {
+      errors.push("Available to date is required");
+    }
+    if (!formData.license_number?.trim()) {
+      errors.push("License number is required");
+    }
+    if (!formData.license_expiry) {
+      errors.push("License expiry date is required");
+    }
+    if (!formData.amenities?.length) {
+      errors.push("At least one amenity is required");
+    }
+    if (!formData.house_rules?.length) {
+      errors.push("At least one house rule is required");
+    }
+
+    // Validate date ranges
+    if (formData.available_from && formData.available_to) {
+      const from = new Date(formData.available_from);
+      const to = new Date(formData.available_to);
+      if (from >= to) {
+        errors.push("Available to date must be after available from date");
+      }
+    }
+
+    return errors;
+  };
+
+  const handleNext = () => {
+    const errors = validateHostDetails();
+    if (errors.length > 0) {
+      toast({
+        title: "Please fix the following errors:",
+        description: (
+          <ul className="list-disc pl-4">
+            {errors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        ),
+        variant: "destructive",
+      });
+      return;
+    }
+    onNext();
   };
 
   return (
@@ -261,9 +326,7 @@ const HostDetails = ({
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={onNext} disabled={!isValid()}>
-          Continue
-        </Button>
+        <Button onClick={handleNext}>Continue</Button>
       </div>
     </div>
   );

@@ -92,49 +92,69 @@ const ProfileSetup = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
-      // Convert camelCase to snake_case and only include valid fields
-      const profile = {
+      // Clean up the profile data before sending
+      const cleanProfile = {
         role,
         first_name: formData.first_name,
         last_name: formData.last_name,
         phone_number: formData.phone_number,
-        date_of_birth: formData.date_of_birth,
+        date_of_birth: formData.date_of_birth || null,
         nationality: formData.nationality,
         languages: formData.languages,
         bio: formData.bio,
         profile_complete: true,
 
-        // Host fields
-        address: formData.address,
-        city: formData.city,
-        prefecture: formData.prefecture,
-        postal_code: formData.postal_code,
-        accommodation_type: formData.accommodation_type,
-        room_type: formData.room_type,
-        max_guests: formData.max_guests,
-        amenities: formData.amenities,
-        house_rules: formData.house_rules,
-        available_from: formData.available_from,
-        available_to: formData.available_to,
-        price_per_night: formData.price_per_night,
-        license_number: formData.license_number,
-        license_expiry: formData.license_expiry,
+        // Host fields - only include if they have values
+        ...(formData.address && { address: formData.address }),
+        ...(formData.city && { city: formData.city }),
+        ...(formData.prefecture && { prefecture: formData.prefecture }),
+        ...(formData.postal_code && { postal_code: formData.postal_code }),
+        ...(formData.accommodation_type && {
+          accommodation_type: formData.accommodation_type,
+        }),
+        ...(formData.room_type && { room_type: formData.room_type }),
+        ...(formData.max_guests && { max_guests: formData.max_guests }),
+        ...(formData.amenities?.length && { amenities: formData.amenities }),
+        ...(formData.house_rules?.length && {
+          house_rules: formData.house_rules,
+        }),
+        ...(formData.available_from && {
+          available_from: formData.available_from,
+        }),
+        ...(formData.available_to && { available_to: formData.available_to }),
+        ...(formData.price_per_night && {
+          price_per_night: formData.price_per_night,
+        }),
+        ...(formData.license_number && {
+          license_number: formData.license_number,
+        }),
+        ...(formData.license_expiry && {
+          license_expiry: formData.license_expiry,
+        }),
 
-        // Guest fields
-        study_purpose: formData.study_purpose,
-        planned_duration: formData.planned_duration,
-        dietary_restrictions: formData.dietary_restrictions,
-        preferred_location: formData.preferred_location,
-        start_date: formData.start_date,
-        budget_min: formData.budget_min,
-        budget_max: formData.budget_max,
+        // Guest fields - only include if they have values
+        ...(formData.study_purpose && {
+          study_purpose: formData.study_purpose,
+        }),
+        ...(formData.planned_duration && {
+          planned_duration: formData.planned_duration,
+        }),
+        ...(formData.dietary_restrictions?.length && {
+          dietary_restrictions: formData.dietary_restrictions,
+        }),
+        ...(formData.preferred_location?.length && {
+          preferred_location: formData.preferred_location,
+        }),
+        ...(formData.start_date && { start_date: formData.start_date }),
+        ...(formData.budget_min && { budget_min: formData.budget_min }),
+        ...(formData.budget_max && { budget_max: formData.budget_max }),
       };
 
-      console.log("Updating profile with:", profile);
+      console.log("Updating profile with:", cleanProfile);
 
       const { data, error } = await supabase
         .from("profiles")
-        .update(profile)
+        .update(cleanProfile)
         .eq("user_id", user.id)
         .select();
 

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { useFormStorage } from "@/hooks/useFormStorage";
 import { Profile } from "@/types/user";
+import { useToast } from "@/components/ui/use-toast";
 
 interface BasicInfoProps {
   formData: Profile;
@@ -47,16 +48,53 @@ const BasicInfo = ({
   onBack,
 }: BasicInfoProps) => {
   const updateForm = useFormStorage(setFormData);
+  const { toast } = useToast();
 
-  const isValid = () => {
-    return (
-      formData.first_name &&
-      formData.last_name &&
-      formData.phone_number &&
-      formData.date_of_birth &&
-      formData.nationality &&
-      formData.languages.length > 0
-    );
+  const validateBasicInfo = () => {
+    const errors: string[] = [];
+
+    if (!formData.first_name?.trim()) {
+      errors.push("First name is required");
+    }
+    if (!formData.last_name?.trim()) {
+      errors.push("Last name is required");
+    }
+    if (!formData.phone_number?.trim()) {
+      errors.push("Phone number is required");
+    }
+    if (!formData.date_of_birth) {
+      errors.push("Date of birth is required");
+    }
+    if (!formData.nationality?.trim()) {
+      errors.push("Nationality is required");
+    }
+    if (!formData.languages?.length) {
+      errors.push("At least one language is required");
+    }
+    if (!formData.bio?.trim()) {
+      errors.push("Bio is required");
+    }
+
+    return errors;
+  };
+
+  const handleNext = () => {
+    const errors = validateBasicInfo();
+    if (errors.length > 0) {
+      toast({
+        title: "Please fix the following errors:",
+        description: (
+          <ul className="list-disc pl-4">
+            {errors.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+          </ul>
+        ),
+        variant: "destructive",
+      });
+      return;
+    }
+    onNext();
   };
 
   return (
@@ -161,9 +199,7 @@ const BasicInfo = ({
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={onNext} disabled={!isValid()}>
-          Continue
-        </Button>
+        <Button onClick={handleNext}>Continue</Button>
       </div>
     </div>
   );

@@ -553,7 +553,7 @@ const Profile = () => {
   );
 
   if (!profile) {
-    return <div>Loading...</div>;
+    return <div className="text-center flex justify-center items-center h-screen">Loading...</div>;
   }
 
   return (
