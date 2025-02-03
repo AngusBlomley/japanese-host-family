@@ -12,7 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Heart, Star } from "lucide-react";
+import { Search, Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -28,6 +28,58 @@ interface SearchFilters {
   roomType: string;
   keyword: string;
 }
+
+const ImageCarousel = ({ images }: { images: string[] }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const previousImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <div className="relative w-full h-48 md:h-full">
+      <img
+        src={images[currentIndex]}
+        alt={`Image ${currentIndex + 1}`}
+        className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
+      />
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={previousImage}
+            className="absolute left-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            aria-label="Previous image"
+          >
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <button
+            onClick={nextImage}
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors"
+            aria-label="Next image"
+          >
+            <ChevronRight className="h-6 w-6" />
+          </button>
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
+            {images.map((_, index) => (
+              <div
+                key={index}
+                className={`w-1.5 h-1.5 rounded-full ${
+                  index === currentIndex ? "bg-white" : "bg-white/50"
+                }`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
 
 const ListingCard = ({ listing }: { listing: Listing }) => {
   const navigate = useNavigate();
@@ -117,11 +169,7 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
     >
       <div className="md:w-1/3 relative">
         {listing.images && listing.images.length > 0 && (
-          <img
-            src={listing.images[0]}
-            alt={listing.title}
-            className="w-full h-48 md:h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
-          />
+          <ImageCarousel images={listing.images} />
         )}
       </div>
       <div className="flex-1 p-6">
@@ -136,7 +184,7 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
             <Button
               variant="secondary"
               className="bg-gray-100 hover:bg-gray-200"
-              onClick={(e) => e.stopPropagation()}
+              onClick={() => navigate(`/listings/${listing.id}`)}
             >
               View Details
             </Button>

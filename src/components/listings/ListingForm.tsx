@@ -27,62 +27,59 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ImagePlus, X } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
-const listingSchema = z
-  .object({
-    title: z.string().min(1, "Title is required"),
-    description: z.string().min(1, "Description is required"),
-    address: z.string().min(1, "Address is required"),
-    city: z.string().min(1, "City is required"),
-    postal_code: z.string().min(1, "Postal code is required"),
-    prefecture: z.string().min(1, "Prefecture is required"),
-    pricing: z.object({
-      type: z.enum(["weekly", "monthly"]),
-      base_rate: z.number().min(1, "Base rate is required"),
-      includes: z.object({
-        breakfast: z.boolean(),
-        lunch: z.boolean(),
-        dinner: z.boolean(),
-        utilities: z.boolean(),
-        wifi: z.boolean(),
-        laundry: z.boolean(),
-      }),
+const listingSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  postal_code: z.string().min(1, "Postal code is required"),
+  prefecture: z.string().min(1, "Prefecture is required"),
+  pricing: z.object({
+    type: z.enum(["weekly", "monthly"]),
+    base_rate: z.number().min(1, "Base rate is required"),
+    includes: z.object({
+      breakfast: z.boolean(),
+      lunch: z.boolean(),
+      dinner: z.boolean(),
+      utilities: z.boolean(),
+      wifi: z.boolean(),
+      laundry: z.boolean(),
     }),
-    room_type: z.enum(["private", "shared"]),
-    meal_plan: z.enum(["none", "breakfast_only", "half_board", "full_board"]),
-    max_guests: z.number().min(1, "Maximum guests is required"),
-    amenities: z.array(z.string()),
-    house_rules: z.array(z.string()),
-    available_from: z.string(),
-    available_to: z.string(),
-    images: z.array(z.string()).optional(),
-    location: z
-      .object({
-        latitude: z.number(),
-        longitude: z.number(),
-      })
-      .optional(),
-    student_requirements: z
-      .object({
-        min_age: z.number().optional(),
-        max_age: z.number().optional(),
-        language_level: z.string().optional(),
-        minimum_stay_weeks: z.number().optional(),
-      })
-      .optional(),
-    status: z.enum(["draft", "published", "archived"]).default("published"),
-  })
-  .refine(
-    (data) => {
-      if (data.images && data.images.length > 8) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: "Maximum 8 images allowed",
-      path: ["images"],
-    }
-  );
+  }),
+  room_type: z.enum(["private", "shared"]),
+  meal_plan: z.enum(["none", "breakfast_only", "half_board", "full_board"]),
+  max_guests: z.number().min(1, "Maximum guests is required"),
+  amenities: z.array(z.string()),
+  house_rules: z.array(z.string()),
+  available_from: z.string(),
+  available_to: z.string(),
+  images: z
+    .array(z.instanceof(File))
+    .optional()
+    .refine((files) => {
+      if (!files || files.length === 0) return true;
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+      return files.every((file) => file.size <= MAX_FILE_SIZE);
+    }, "Each image must be less than 10MB")
+    .refine((files) => !files || files.length <= 8, "Maximum 8 images allowed")
+    .refine(
+      (files) => !files || files.length >= 3,
+      "Minimum 3 images required"
+    ),
+  location: z
+    .object({
+      latitude: z.number(),
+      longitude: z.number(),
+    })
+    .optional(),
+  student_requirements: z.object({
+    min_age: z.number().min(16).max(100).optional(),
+    max_age: z.number().min(16).max(100).optional(),
+    language_level: z.string().optional(),
+    minimum_stay_weeks: z.number().min(1).max(52).optional(),
+  }),
+  status: z.enum(["draft", "published", "archived"]).default("published"),
+});
 
 interface ImagePreview {
   file: File;
@@ -164,6 +161,7 @@ const ListingForm = () => {
         language_level: "",
         minimum_stay_weeks: undefined,
       },
+      images: undefined,
     },
   });
 
@@ -171,10 +169,32 @@ const ListingForm = () => {
     const files = event.target.files;
     if (!files) return;
 
-    const newImages = Array.from(files).map((file) => ({
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    const validFiles = Array.from(files).filter((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "Error",
+          description: `${file.name} is too large. Maximum size is 10MB.`,
+          variant: "destructive",
+        });
+        return false;
+      }
+      return true;
+    });
+
+    const newImages = validFiles.map((file) => ({
       file,
       url: URL.createObjectURL(file),
     }));
+
+    if (images.length + newImages.length > 8) {
+      toast({
+        title: "Error",
+        description: "Maximum 8 images allowed",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setImages((prev) => [...prev, ...newImages]);
   };
@@ -190,6 +210,15 @@ const ListingForm = () => {
 
   const onSubmit = async (values: z.infer<typeof listingSchema>) => {
     try {
+      if (images.length < 3) {
+        toast({
+          title: "Error",
+          description: "Please upload at least 3 images",
+          variant: "destructive",
+        });
+        return;
+      }
+
       setIsUploading(true);
       setUploadProgress({
         total: images.length,
@@ -508,9 +537,9 @@ const ListingForm = () => {
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div>
           <Label>Property Images</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
             {images.map((image, index) => (
               <div key={index} className="relative group">
                 <img
@@ -540,9 +569,18 @@ const ListingForm = () => {
               />
             </label>
           </div>
-          <p className="text-sm text-gray-500">
-            Upload up to 8 images of your property
-          </p>
+          <div className="mt-2 flex justify-between items-center">
+            <p className="text-sm text-gray-500">
+              Upload 3-8 images of your property (max 10MB each)
+            </p>
+            <span className="text-sm text-gray-500">
+              {images.length} / 8 images
+            </span>
+          </div>
+          <FormMessage>
+            {form.formState.errors.images &&
+              form.formState.errors.images.message}
+          </FormMessage>
         </div>
 
         <FormField
@@ -684,6 +722,103 @@ const ListingForm = () => {
             </FormItem>
           )}
         />
+
+        <div className="space-y-4 border rounded-lg p-6">
+          <h3 className="text-lg font-semibold">Student Requirements</h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="student_requirements.min_age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Age</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? parseInt(e.target.value) : undefined
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="student_requirements.max_age"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Maximum Age</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? parseInt(e.target.value) : undefined
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="student_requirements.language_level"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Required Language Level</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select language level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner</SelectItem>
+                      <SelectItem value="intermediate">Intermediate</SelectItem>
+                      <SelectItem value="advanced">Advanced</SelectItem>
+                      <SelectItem value="fluent">Fluent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="student_requirements.minimum_stay_weeks"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Minimum Stay (weeks)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? parseInt(e.target.value) : undefined
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         {isUploading && (
           <div className="space-y-2">

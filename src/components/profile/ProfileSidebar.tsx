@@ -1,6 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Settings, Shield, Bell, LogOut } from "lucide-react";
+import {
+  User,
+  Settings,
+  Shield,
+  Bell,
+  LogOut,
+  MessageCircle,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export const ProfileSidebar = () => {
@@ -18,6 +25,10 @@ export const ProfileSidebar = () => {
         <TabsTrigger value="security" className="w-full justify-start">
           <Shield className="mr-2 h-4 w-4" />
           Security
+        </TabsTrigger>
+        <TabsTrigger value="messages" className="w-full justify-start">
+          <MessageCircle className="mr-2 h-4 w-4" />
+          Messages
         </TabsTrigger>
         <TabsTrigger value="notifications" className="w-full justify-start">
           <Bell className="mr-2 h-4 w-4" />

@@ -124,3 +124,40 @@ export function isHostProfile(profile: Profile): boolean {
 export function isGuestProfile(profile: Profile): boolean {
   return profile.role === "guest";
 }
+
+// Add these interfaces
+export interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  content: string;
+  created_at: string;
+  read_at: string | null;
+  sender: Profile;
+}
+
+export interface Conversation {
+  id: string;
+  listing_id: string;
+  guest_id: string;
+  host_id: string;
+  created_at: string;
+  updated_at: string;
+  status: "active" | "archived";
+  listing: Listing;
+  guest: Profile;
+  host: Profile;
+  last_message?: {
+    content: string;
+    created_at: string;
+  };
+  unread_count: number;
+  is_read: boolean;
+  is_archived: boolean;
+  is_deleted: boolean;
+  is_pinned: boolean;
+  is_muted: boolean;
+  is_blocked: boolean;
+  is_favorite: boolean;
+  is_starred: boolean;
+}

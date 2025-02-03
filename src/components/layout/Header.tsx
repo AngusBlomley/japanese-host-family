@@ -4,13 +4,39 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, MessageCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useEffect, useState } from "react";
+import type { Profile } from "@/types/user";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 const Header = () => {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const unreadCount = useUnreadMessages();
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
+
+      setProfile(data);
+    };
+
+    fetchProfile();
+  }, [user]);
 
   const getLinkClass = (path: string) => {
     const isActive = location.pathname === path;
@@ -37,7 +63,7 @@ const Header = () => {
             </Link>
           </div>
 
-          <nav className="flex items-center">
+          <nav className="flex items-center gap-4">
             {user ? (
               <>
                 <Link to="/dashboard" className={getLinkClass("/dashboard")}>
@@ -83,13 +109,32 @@ const Header = () => {
                 <Link to="/profile">
                   <Avatar className="h-8 w-8 ml-2">
                     <AvatarImage
-                      src={user.user_metadata?.avatar_url || undefined}
-                      alt={user.email || "User avatar"}
+                      src={profile?.avatar_url || undefined}
+                      alt={
+                        profile
+                          ? `${profile.first_name} ${profile.last_name}`
+                          : "User avatar"
+                      }
                     />
                     <AvatarFallback>
-                      {user.email?.charAt(0).toUpperCase() || "U"}
+                      {profile?.first_name?.[0] ||
+                        user?.email?.[0]?.toUpperCase() ||
+                        "U"}
                     </AvatarFallback>
                   </Avatar>
+                </Link>
+
+                <Link
+                  to="/chat"
+                  className="relative flex items-center gap-2 hover:text-primary"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                  Messages
+                  {user && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  )}
                 </Link>
               </>
             ) : (
