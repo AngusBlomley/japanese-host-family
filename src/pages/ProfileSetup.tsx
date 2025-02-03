@@ -11,6 +11,7 @@ import GuestDetails from "@/components/profile-setup/steps/GuestDetails";
 import ReviewSubmit from "@/components/profile-setup/steps/ReviewSubmit";
 import { STORAGE_KEYS } from "@/constants/storage";
 import type { Profile } from "@/types/user";
+import Header from "@/components/layout/Header";
 
 const steps = {
   host: ["Role", "Basic Info", "Host Details", "Review & Submit"],
@@ -238,23 +239,26 @@ const ProfileSetup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold">Profile Setup</h2>
-              <span className="text-sm text-gray-500">
-                Step {currentStep + 1} of {totalSteps}
-              </span>
+    <>
+      <Header />
+      <div className="min-h-screen bg-gray-50 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-bold">Profile Setup</h2>
+                <span className="text-sm text-gray-500">
+                  Step {currentStep + 1} of {totalSteps}
+                </span>
+              </div>
+              <Progress value={progress} className="h-2" />
             </div>
-            <Progress value={progress} className="h-2" />
-          </div>
 
-          {renderStep()}
+            {renderStep()}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

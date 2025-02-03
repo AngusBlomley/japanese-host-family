@@ -25,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import Header from "@/components/layout/Header";
 
 const Profile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -553,24 +554,31 @@ const Profile = () => {
   );
 
   if (!profile) {
-    return <div className="text-center flex justify-center items-center h-screen">Loading...</div>;
+    return (
+      <div className="text-center flex justify-center items-center h-screen">
+        Loading...
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      {renderHeader()}
-      {renderBasicInfo()}
-      {role === "host" ? renderHostSpecificInfo() : renderGuestSpecificInfo()}
+    <>
+      <Header />
+      <div className="max-w-4xl mx-auto p-6">
+        {renderHeader()}
+        {renderBasicInfo()}
+        {role === "host" ? renderHostSpecificInfo() : renderGuestSpecificInfo()}
 
-      {isEditing && (
-        <EditProfileForm
-          profile={profile}
-          role={role}
-          onSave={handleUpdate}
-          onCancel={() => setIsEditing(false)}
-        />
-      )}
-    </div>
+        {isEditing && (
+          <EditProfileForm
+            profile={profile}
+            role={role}
+            onSave={handleUpdate}
+            onCancel={() => setIsEditing(false)}
+          />
+        )}
+      </div>
+    </>
   );
 };
 

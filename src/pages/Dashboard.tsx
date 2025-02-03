@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import Header from "@/components/layout/Header";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -38,17 +39,17 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
-          <Button variant="outline" onClick={handleLogout}>
-            Logout
-          </Button>
+    <>
+      <Header />
+      <div className="p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-2xl font-bold">Dashboard</h1>
+          </div>
+          {/* Dashboard content will go here */}
         </div>
-        {/* Dashboard content will go here */}
       </div>
-    </div>
+    </>
   );
 };
 

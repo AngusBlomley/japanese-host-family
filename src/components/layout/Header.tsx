@@ -1,34 +1,47 @@
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { cn } from "@/lib/utils";
 
 const Header = () => {
-  const navigate = useNavigate();
+  const { user } = useAuth();
+  const location = useLocation();
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
+  const getLinkClass = (path: string) => {
+    const isActive = location.pathname === path;
+    return cn(
+      "text-sm font-medium transition-colors",
+      isActive
+        ? "text-primary bg-primary/10 px-3 py-2 rounded-md"
+        : "text-gray-700 hover:text-gray-900 px-3 py-2"
+    );
   };
 
   return (
     <header className="border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <nav className="flex items-center space-x-4">
-            <Link to="/" className="text-lg font-semibold">
-              Home
+          <div className="flex items-center">
+            <Link to="/" className={getLinkClass("/")}>
+              Japanese Host Family
             </Link>
-            <Link to="/profile" className="text-lg">
-              Profile
-            </Link>
-            <Link to="/dashboard" className="text-lg">
-              Dashboard
-            </Link>
+          </div>
+
+          <nav className="flex items-center gap-4">
+            {user ? (
+              <>
+                <Link to="/dashboard" className={getLinkClass("/dashboard")}>
+                  Dashboard
+                </Link>
+                <Link to="/profile" className={getLinkClass("/profile")}>
+                  Profile
+                </Link>
+              </>
+            ) : (
+              <Link to="/auth" className={getLinkClass("/auth")}>
+                Sign In
+              </Link>
+            )}
           </nav>
-          <Button variant="outline" onClick={handleLogout}>
-            Logout
-          </Button>
         </div>
       </div>
     </header>
