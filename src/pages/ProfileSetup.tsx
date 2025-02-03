@@ -17,50 +17,6 @@ const steps = {
   guest: ["Role", "Basic Info", "Guest Details", "Review & Submit"],
 };
 
-// Common form fields that should be required
-type RequiredFormFields = {
-  first_name: string;
-  last_name: string;
-  phone_number: string;
-  date_of_birth: string;
-  nationality: string;
-  bio: string;
-  languages: string[];
-};
-
-// Host-specific required fields
-type RequiredHostFields = {
-  address: string;
-  city: string;
-  prefecture: string;
-  postal_code: string;
-  license_number: string;
-  license_expiry: string;
-  accommodation_type: "house" | "apartment";
-  room_type: "private" | "shared";
-  max_guests: number;
-  price_per_night: number;
-  amenities: string[];
-  house_rules: string[];
-  available_from: string;
-  available_to: string;
-};
-
-// Guest-specific required fields
-type RequiredGuestFields = {
-  study_purpose: string;
-  planned_duration: "1-3" | "3-6" | "6-12" | "12+";
-  start_date: string;
-  budget_min: number;
-  budget_max: number;
-  dietary_restrictions: string[];
-  preferred_location: string[];
-};
-
-type ProfileFormData = RequiredFormFields &
-  RequiredHostFields &
-  RequiredGuestFields;
-
 const ProfileSetup = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [role, setRole] = useState<UserRole | null>(() => {
@@ -73,7 +29,6 @@ const ProfileSetup = () => {
     return saved
       ? JSON.parse(saved)
       : {
-          // Basic Info
           first_name: "",
           last_name: "",
           phone_number: "",
@@ -81,8 +36,15 @@ const ProfileSetup = () => {
           nationality: "",
           languages: [],
           bio: "",
-
-          // Host Specific
+          dietary_restrictions: [],
+          preferred_location: [],
+          study_purpose: "",
+          planned_duration: "1-3",
+          start_date: "",
+          budget_min: 0,
+          budget_max: 0,
+          amenities: [],
+          house_rules: [],
           address: "",
           city: "",
           prefecture: "",
@@ -92,20 +54,7 @@ const ProfileSetup = () => {
           accommodation_type: "house",
           room_type: "private",
           max_guests: 1,
-          amenities: [],
-          house_rules: [],
-          available_from: "",
-          available_to: "",
           price_per_night: 0,
-
-          // Guest Specific
-          study_purpose: "",
-          planned_duration: "1-3",
-          dietary_restrictions: [],
-          preferred_location: [],
-          start_date: "",
-          budget_min: 0,
-          budget_max: 0,
         };
   });
 
@@ -143,17 +92,58 @@ const ProfileSetup = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
+      // Convert camelCase to snake_case and only include valid fields
       const profile = {
-        user_id: user.id,
         role,
-        ...formData,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone_number: formData.phone_number,
+        date_of_birth: formData.date_of_birth,
+        nationality: formData.nationality,
+        languages: formData.languages,
+        bio: formData.bio,
         profile_complete: true,
+
+        // Host fields
+        address: formData.address,
+        city: formData.city,
+        prefecture: formData.prefecture,
+        postal_code: formData.postal_code,
+        accommodation_type: formData.accommodation_type,
+        room_type: formData.room_type,
+        max_guests: formData.max_guests,
+        amenities: formData.amenities,
+        house_rules: formData.house_rules,
+        available_from: formData.available_from,
+        available_to: formData.available_to,
+        price_per_night: formData.price_per_night,
+        license_number: formData.license_number,
+        license_expiry: formData.license_expiry,
+
+        // Guest fields
+        study_purpose: formData.study_purpose,
+        planned_duration: formData.planned_duration,
+        dietary_restrictions: formData.dietary_restrictions,
+        preferred_location: formData.preferred_location,
+        start_date: formData.start_date,
+        budget_min: formData.budget_min,
+        budget_max: formData.budget_max,
       };
 
-      // Insert into unified profiles table
-      const { error } = await supabase.from("profiles").insert([profile]);
+      console.log("Updating profile with:", profile);
 
-      if (error) throw error;
+      const { data, error } = await supabase
+        .from("profiles")
+        .update(profile)
+        .eq("user_id", user.id)
+        .select();
+
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      console.log("Update response:", data);
 
       toast({
         title: "Profile Created!",
@@ -164,16 +154,18 @@ const ProfileSetup = () => {
       localStorage.removeItem(STORAGE_KEYS.PROFILE_SETUP.ROLE);
       navigate("/dashboard");
     } catch (error: unknown) {
+      console.error("Full error:", error);
+
       if (error instanceof Error) {
         toast({
           title: "Error",
-          description: error.message,
+          description: `Failed to update profile: ${error.message}`,
           variant: "destructive",
         });
       } else {
         toast({
           title: "Error",
-          description: "An unknown error occurred",
+          description: "An unknown error occurred while updating profile",
           variant: "destructive",
         });
       }

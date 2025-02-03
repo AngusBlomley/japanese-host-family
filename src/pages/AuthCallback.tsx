@@ -14,22 +14,21 @@ const AuthCallback = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Simplify the reset check - just check for reset=true
+  const reset = searchParams.get("reset");
   const token = searchParams.get("token");
-  const type = searchParams.get("type");
-  const isReset = type === "recovery" && token;
+  const isReset = reset === "true" && token;
 
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
         // If it's a password reset flow
-        if (type === "recovery") {
+        if (reset === "true") {
           if (!token) {
             console.error("No reset token found");
             navigate("/auth");
-            return;
           }
-          // Show the password reset form instead of auto-redirecting
-          return;
+          return; // Just show the reset form
         }
 
         // Normal OAuth callback flow
@@ -88,7 +87,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate, token, type]);
+  }, [navigate, token, reset]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();

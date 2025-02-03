@@ -57,12 +57,16 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isResetPassword) {
+        const redirectUrl = import.meta.env.PROD
+          ? "https://japanese-host-family.vercel.app/auth/callback?reset=true"
+          : `${window.location.origin}/auth/callback?reset=true`;
+
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: import.meta.env.PROD
-            ? "https://japanese-host-family.vercel.app/auth/callback?type=recovery"
-            : `${window.location.origin}/auth/callback?type=recovery`,
+          redirectTo: redirectUrl,
         });
+
         if (error) throw error;
+
         toast({
           title: "Check your email",
           description: "We've sent you a password reset link.",

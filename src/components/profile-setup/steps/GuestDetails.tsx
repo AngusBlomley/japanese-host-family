@@ -20,7 +20,8 @@ interface GuestDetailsProps {
   onBack: () => void;
 }
 
-const dietaryRestrictions = [
+// Rename these to DIETARY_OPTIONS and LOCATION_OPTIONS
+const DIETARY_OPTIONS = [
   "Vegetarian",
   "Vegan",
   "Halal",
@@ -31,7 +32,7 @@ const dietaryRestrictions = [
   "Seafood Allergy",
 ];
 
-const preferredLocations = [
+const LOCATION_OPTIONS = [
   "Tokyo",
   "Osaka",
   "Kyoto",
@@ -49,6 +50,26 @@ const GuestDetails = ({
   onBack,
 }: GuestDetailsProps) => {
   const updateForm = useFormStorage(setFormData);
+
+  // Initialize arrays if they don't exist
+  const dietaryRestrictions = formData.dietary_restrictions || [];
+  const preferredLocations = formData.preferred_location || [];
+
+  const handleDietaryChange = (value: string) => {
+    const newDietary = dietaryRestrictions.includes(value)
+      ? dietaryRestrictions.filter((item) => item !== value)
+      : [...dietaryRestrictions, value];
+
+    updateForm("dietary_restrictions", newDietary);
+  };
+
+  const handleLocationChange = (value: string) => {
+    const newLocation = preferredLocations.includes(value)
+      ? preferredLocations.filter((item) => item !== value)
+      : [...preferredLocations, value];
+
+    updateForm("preferred_location", newLocation);
+  };
 
   const isValid = () => {
     return (
@@ -95,19 +116,12 @@ const GuestDetails = ({
       <div>
         <Label>Dietary Restrictions</Label>
         <div className="grid grid-cols-2 gap-2 mt-2">
-          {dietaryRestrictions.map((restriction) => (
+          {DIETARY_OPTIONS.map((restriction) => (
             <div key={restriction} className="flex items-center space-x-2">
               <Checkbox
                 id={restriction}
-                checked={formData.dietary_restrictions.includes(restriction)}
-                onCheckedChange={(checked) => {
-                  const newRestrictions = checked
-                    ? [...formData.dietary_restrictions, restriction]
-                    : formData.dietary_restrictions.filter(
-                        (r: string) => r !== restriction
-                      );
-                  updateForm("dietary_restrictions", newRestrictions);
-                }}
+                checked={dietaryRestrictions.includes(restriction)}
+                onCheckedChange={() => handleDietaryChange(restriction)}
               />
               <label htmlFor={restriction} className="text-sm">
                 {restriction}
@@ -120,19 +134,12 @@ const GuestDetails = ({
       <div>
         <Label>Preferred Locations</Label>
         <div className="grid grid-cols-2 gap-2 mt-2">
-          {preferredLocations.map((location) => (
+          {LOCATION_OPTIONS.map((location) => (
             <div key={location} className="flex items-center space-x-2">
               <Checkbox
                 id={location}
-                checked={formData.preferred_location.includes(location)}
-                onCheckedChange={(checked) => {
-                  const newLocations = checked
-                    ? [...formData.preferred_location, location]
-                    : formData.preferred_location.filter(
-                        (l: string) => l !== location
-                      );
-                  updateForm("preferred_location", newLocations);
-                }}
+                checked={preferredLocations.includes(location)}
+                onCheckedChange={() => handleLocationChange(location)}
               />
               <label htmlFor={location} className="text-sm">
                 {location}
