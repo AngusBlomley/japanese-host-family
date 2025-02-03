@@ -5,18 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
-
-interface Message {
-  id: string;
-  sender_id: string;
-  content: string;
-  created_at: string;
-  sender: {
-    first_name: string;
-    last_name: string;
-    avatar_url: string;
-  };
-}
+import { Message } from "../../types/user";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -79,7 +68,6 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
         return;
       }
 
-      console.log("Fetched messages:", data);
       setMessages(data);
       scrollToBottom();
 

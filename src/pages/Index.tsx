@@ -100,7 +100,7 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
         .select("*")
         .eq("user_id", user.id)
         .eq("listing_id", listing.id)
-        .single();
+        .maybeSingle();
 
       setIsSaved(!!data);
     };

@@ -3,52 +3,88 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
 export const useUnreadMessages = () => {
-  const { user, loading } = useAuth();
+  const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const [currentProfile, setCurrentProfile] = useState<{ id: string } | null>(
+    null
+  );
 
   useEffect(() => {
-    if (loading) return;
     if (!user?.id) return;
 
+    const fetchProfile = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      setCurrentProfile(data);
+    };
+
+    fetchProfile();
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!currentProfile?.id) return;
+
     const fetchUnreadCount = async () => {
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
+      // Get all conversations for the current user
+      const { data: conversations, error: convError } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(`host_id.eq.${currentProfile.id},guest_id.eq.${currentProfile.id}`);
 
-        if (!profile?.id) return;
-
-        const { count } = await supabase.rpc("get_unread_messages_count", {
-          profile_id: profile.id,
-        });
-
-        setUnreadCount(count ?? 0);
-      } catch (error) {
-        console.error("Error fetching unread count:", error);
+      if (convError) {
+        console.error("Error fetching conversations:", convError);
+        return;
       }
+
+      if (!conversations?.length) {
+        setUnreadCount(0);
+        return;
+      }
+
+      // Get unread messages count
+      const { count, error } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .in(
+          "conversation_id",
+          conversations.map((c) => c.id)
+        )
+        .neq("sender_id", currentProfile.id)
+        .is("read_at", null);
+
+      if (error) {
+        console.error("Error fetching unread count:", error);
+        return;
+      }
+
+      setUnreadCount(count || 0);
     };
 
     fetchUnreadCount();
 
+    // Subscribe to message changes
     const channel = supabase
       .channel("unread_messages")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages",
         },
-        fetchUnreadCount
+        () => {
+          fetchUnreadCount();
+        }
       )
       .subscribe();
 
     return () => {
       channel.unsubscribe();
     };
-  }, [user?.id, loading]);
+  }, [currentProfile?.id]);
 
   return unreadCount;
 };

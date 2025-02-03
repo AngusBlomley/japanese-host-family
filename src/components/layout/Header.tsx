@@ -41,7 +41,7 @@ const Header = () => {
   const getLinkClass = (path: string) => {
     const isActive = location.pathname === path;
     return cn(
-      "text-sm font-medium transition-colors",
+      "text-sm font-medium transition-colors relative",
       isActive
         ? "text-primary bg-primary/10 px-3 py-2 rounded-md hover:bg-gray-100 px-3 py-2 rounded-md"
         : "text-gray-700 hover:text-gray-900 px-3 py-2 hover:bg-gray-100 px-3 py-2 rounded-md"
@@ -63,7 +63,7 @@ const Header = () => {
             </Link>
           </div>
 
-          <nav className="flex items-center gap-4">
+          <nav className="flex items-center">
             {user ? (
               <>
                 <Link to="/dashboard" className={getLinkClass("/dashboard")}>
@@ -74,6 +74,14 @@ const Header = () => {
                 <div className="hidden md:flex items-center">
                   <Link to="/profile" className={getLinkClass("/profile")}>
                     Profile
+                  </Link>
+                  <Link to="/chat" className={getLinkClass("/chat")}>
+                    Messages
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                        {unreadCount > 99 ? "99+" : unreadCount}
+                      </span>
+                    )}
                   </Link>
                   <Button
                     variant="ghost"
@@ -122,19 +130,6 @@ const Header = () => {
                         "U"}
                     </AvatarFallback>
                   </Avatar>
-                </Link>
-
-                <Link
-                  to="/chat"
-                  className="relative flex items-center gap-2 hover:text-primary"
-                >
-                  <MessageCircle className="h-5 w-5" />
-                  Messages
-                  {user && unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                      {unreadCount > 99 ? "99+" : unreadCount}
-                    </span>
-                  )}
                 </Link>
               </>
             ) : (

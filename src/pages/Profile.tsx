@@ -119,14 +119,12 @@ const Profile = () => {
             defaultValue="personal"
             className="flex w-full min-h-[calc(100vh-12rem)]"
           >
-            {/* Sidebar */}
             <div className="w-64 border-r bg-gray-50/40 rounded-l-lg">
               <div className="p-4 sticky top-0">
                 <ProfileSidebar />
               </div>
             </div>
 
-            {/* Main Content */}
             <div className="flex-1 p-8">
               <TabsContent value="personal" className="mt-0">
                 <PersonalInfo profile={profile} />
@@ -138,68 +136,6 @@ const Profile = () => {
 
               <TabsContent value="settings" className="mt-0">
                 <Settings profile={profile} />
-              </TabsContent>
-
-              <TabsContent value="messages" className="mt-0">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Conversations List */}
-                  <div className="border rounded-lg overflow-y-auto">
-                    {conversations.map((conversation) => (
-                      <button
-                        key={conversation.id}
-                        className={`w-full p-4 text-left border-b last:border-b-0 hover:bg-gray-50 ${
-                          selectedConversation === conversation.id
-                            ? "bg-gray-50"
-                            : ""
-                        }`}
-                        onClick={() => setSelectedConversation(conversation.id)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Avatar>
-                            <AvatarImage
-                              src={
-                                conversation.guest_id === user?.id
-                                  ? conversation.host.avatar_url
-                                  : conversation.guest.avatar_url
-                              }
-                            />
-                            <AvatarFallback>
-                              {conversation.guest_id === user?.id
-                                ? conversation.host.first_name[0]
-                                : conversation.guest.first_name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium">
-                              {conversation.guest_id === user?.id
-                                ? `${conversation.host.first_name} ${conversation.host.last_name}`
-                                : `${conversation.guest.first_name} ${conversation.guest.last_name}`}
-                            </p>
-                            <p className="text-sm text-gray-500 truncate">
-                              {conversation.listing.title}
-                            </p>
-                            {conversation.last_message && (
-                              <p className="text-sm text-gray-600 mt-1 truncate">
-                                {conversation.last_message.content}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Chat Window */}
-                  <div className="md:col-span-2 border rounded-lg">
-                    {selectedConversation ? (
-                      <ChatWindow conversationId={selectedConversation} />
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-gray-500">
-                        Select a conversation to start chatting
-                      </div>
-                    )}
-                  </div>
-                </div>
               </TabsContent>
             </div>
           </Tabs>

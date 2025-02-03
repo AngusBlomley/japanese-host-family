@@ -125,15 +125,19 @@ export function isGuestProfile(profile: Profile): boolean {
   return profile.role === "guest";
 }
 
-// Add these interfaces
 export interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
   content: string;
   created_at: string;
-  read_at: string | null;
-  sender: Profile;
+  read_at?: string | null;
+  sender: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    avatar_url: string | null;
+  };
 }
 
 export interface Conversation {
@@ -160,4 +164,11 @@ export interface Conversation {
   is_blocked: boolean;
   is_favorite: boolean;
   is_starred: boolean;
+}
+
+export interface SavedListing {
+  id: string;
+  user_id: string;
+  listing_id: string;
+  created_at: string;
 }

@@ -21,6 +21,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 
+const checkIfSaved = async (userId: string, listingId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from("saved_listings")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("listing_id", listingId)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code === "PGRST116") {
+        // No rows returned, not an error
+        return false;
+      }
+      console.error("Error checking saved status:", error);
+      return false;
+    }
+
+    return !!data;
+  } catch (error) {
+    console.error("Error in checkIfSaved:", error);
+    return false;
+  }
+};
+
 const ListingDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -64,18 +89,8 @@ const ListingDetail = () => {
 
         // Check if listing is saved
         if (user) {
-          const { data: savedListing, error: savedError } = await supabase
-            .from("saved_listings")
-            .select("*")
-            .eq("user_id", user.id)
-            .eq("listing_id", id)
-            .maybeSingle();
-
-          if (savedError && savedError.code !== "PGRST116") {
-            console.error("Error checking saved status:", savedError);
-          }
-
-          setIsSaved(!!savedListing);
+          const savedListing = await checkIfSaved(user.id, id);
+          setIsSaved(savedListing);
         }
       } catch (error) {
         toast({
