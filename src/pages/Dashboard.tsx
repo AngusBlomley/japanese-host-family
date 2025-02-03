@@ -1,52 +1,44 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import Header from "@/components/layout/Header";
+import HostDashboard from "@/components/dashboard/HostDashboard";
+import GuestDashboard from "@/components/dashboard/GuestDashboard";
+import type { Profile } from "@/types/user";
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
+    const fetchProfile = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      setUser(user);
+      if (!user) return;
+
+      const { data } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (data) setProfile(data);
     };
-    getUser();
+
+    fetchProfile();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/auth");
-  };
-
-  const fetchUserProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
-
-    return profile;
-  };
+  if (!profile) return <div>Loading...</div>;
 
   return (
     <>
       <Header />
       <div className="p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-2xl font-bold">Dashboard</h1>
-          </div>
-          {/* Dashboard content will go here */}
+        <div className="max-w-7xl mx-auto">
+          {profile.role === "host" ? (
+            <HostDashboard profile={profile} />
+          ) : (
+            <GuestDashboard profile={profile} />
+          )}
         </div>
       </div>
     </>

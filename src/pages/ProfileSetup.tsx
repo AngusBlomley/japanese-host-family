@@ -123,8 +123,11 @@ const ProfileSetup = () => {
           available_from: formData.available_from,
         }),
         ...(formData.available_to && { available_to: formData.available_to }),
-        ...(formData.price_per_night && {
-          price_per_night: formData.price_per_night,
+        ...(formData.pricing && {
+          pricing: formData.pricing,
+        }),
+        ...(formData.meal_plan && {
+          meal_plan: formData.meal_plan,
         }),
         ...(formData.license_number && {
           license_number: formData.license_number,

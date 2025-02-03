@@ -1,10 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
 
   const getLinkClass = (path: string) => {
     const isActive = location.pathname === path;
@@ -14,6 +18,11 @@ const Header = () => {
         ? "text-primary bg-primary/10 px-3 py-2 rounded-md"
         : "text-gray-700 hover:text-gray-900 px-3 py-2"
     );
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/");
   };
 
   return (
@@ -35,11 +44,18 @@ const Header = () => {
                 <Link to="/profile" className={getLinkClass("/profile")}>
                   Profile
                 </Link>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  Logout
+                </Button>
               </>
             ) : (
-              <Link to="/auth" className={getLinkClass("/auth")}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/auth")}
+              >
                 Sign In
-              </Link>
+              </Button>
             )}
           </nav>
         </div>

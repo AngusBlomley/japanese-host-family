@@ -12,6 +12,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Profile } from "@/types/user";
 import { useFormStorage } from "@/hooks/useFormStorage";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useEffect } from "react";
 
 interface HostDetailsProps {
   formData: Profile;
@@ -74,8 +83,14 @@ const HostDetails = ({
     if (!formData.max_guests || formData.max_guests < 1) {
       errors.push("Maximum guests must be at least 1");
     }
-    if (!formData.price_per_night || formData.price_per_night < 0) {
-      errors.push("Price per night must be set");
+    if (!formData.pricing?.base_rate || formData.pricing.base_rate < 0) {
+      errors.push("Base rate must be set");
+    }
+    if (!formData.pricing?.type) {
+      errors.push("Payment period must be selected");
+    }
+    if (!formData.meal_plan) {
+      errors.push("Meal plan must be selected");
     }
     if (!formData.available_from) {
       errors.push("Available from date is required");
@@ -126,6 +141,31 @@ const HostDetails = ({
     }
     onNext();
   };
+
+  // Initialize pricing and meal plan if they don't exist
+  const initializeFormData = () => {
+    if (!formData.pricing) {
+      updateForm("pricing", {
+        type: "monthly",
+        base_rate: 0,
+        includes: {
+          breakfast: false,
+          lunch: false,
+          dinner: false,
+          utilities: false,
+          wifi: false,
+          laundry: false,
+        },
+      });
+    }
+    if (!formData.meal_plan) {
+      updateForm("meal_plan", "none");
+    }
+  };
+
+  useEffect(() => {
+    initializeFormData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -290,9 +330,12 @@ const HostDetails = ({
             id="pricePerNight"
             type="number"
             min="0"
-            value={formData.price_per_night}
+            value={formData.pricing?.base_rate || 0}
             onChange={(e) =>
-              updateForm("price_per_night", parseInt(e.target.value))
+              updateForm("pricing", {
+                ...formData.pricing,
+                base_rate: parseInt(e.target.value),
+              })
             }
             required
           />
@@ -319,6 +362,97 @@ const HostDetails = ({
             onChange={(e) => updateForm("available_to", e.target.value)}
             required
           />
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold">Pricing & Meals</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <Label>Payment Period</Label>
+            <Select
+              value={formData.pricing?.type || "monthly"}
+              onValueChange={(value: "weekly" | "monthly") =>
+                updateForm("pricing", {
+                  ...formData.pricing,
+                  type: value,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select period" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Base Rate (¥)</Label>
+            <Input
+              type="number"
+              min="0"
+              value={formData.pricing?.base_rate || 0}
+              onChange={(e) =>
+                updateForm("pricing", {
+                  ...formData.pricing,
+                  base_rate: parseInt(e.target.value),
+                })
+              }
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label>Meal Plan</Label>
+          <Select
+            value={formData.meal_plan || "none"}
+            onValueChange={(value) => updateForm("meal_plan", value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select meal plan" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Room Only (No Meals)</SelectItem>
+              <SelectItem value="breakfast_only">Breakfast Only</SelectItem>
+              <SelectItem value="half_board">
+                Half Board (Breakfast & Dinner)
+              </SelectItem>
+              <SelectItem value="full_board">Full Board (All Meals)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label>Included in Price</Label>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-2">
+            {Object.keys(formData.pricing?.includes || {}).map((item) => (
+              <div key={item} className="flex items-center space-x-2">
+                <Checkbox
+                  id={item}
+                  checked={
+                    formData.pricing?.includes[
+                      item as keyof typeof formData.pricing.includes
+                    ] || false
+                  }
+                  onCheckedChange={(checked) =>
+                    updateForm("pricing", {
+                      ...formData.pricing,
+                      includes: {
+                        ...formData.pricing?.includes,
+                        [item]: checked,
+                      },
+                    })
+                  }
+                />
+                <Label htmlFor={item} className="capitalize">
+                  {item.replace("_", " ")}
+                </Label>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

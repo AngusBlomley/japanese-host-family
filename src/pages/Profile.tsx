@@ -41,33 +41,52 @@ const Profile = () => {
 
   useEffect(() => {
     if (profile?.avatar_url) {
-      fetch(profile.avatar_url).catch((error) => {
-        console.error("Avatar fetch error:", error);
-      });
+      fetch(profile.avatar_url)
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+        })
+        .catch((error) => {
+          console.error("Avatar fetch error:", error);
+        });
     }
   }, [profile?.avatar_url]);
 
   const fetchProfile = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-    // Get the profile
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", user.id)
-      .single();
+      // Get the profile
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select(
+          `
+          *,
+          avatar_url,
+          role,
+          first_name,
+          last_name,
+          profile_complete
+        `
+        )
+        .eq("user_id", user.id)
+        .single();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
-      return;
-    }
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return;
+      }
 
-    if (profile) {
-      setProfile(profile);
-      setRole(profile.role);
+      if (profile) {
+        setProfile(profile);
+        setRole(profile.role);
+      }
+    } catch (error) {
+      console.error("Error in fetchProfile:", error);
     }
   };
 
@@ -117,7 +136,9 @@ const Profile = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      const fileName = `public/images/avatars/${Date.now()}.jpg`;
+      // Create a unique file path using user ID and timestamp
+      const fileExt = file.name.split(".").pop();
+      const fileName = `public/${profile.user_id}-${Date.now()}.${fileExt}`;
 
       // Upload the file
       const { error: uploadError } = await supabase.storage
@@ -145,7 +166,7 @@ const Profile = () => {
           avatar_url: signedUrl,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", user.id);
+        .eq("user_id", profile.user_id);
 
       if (updateError) throw updateError;
 
@@ -176,19 +197,23 @@ const Profile = () => {
     return (
       <div className="flex items-center space-x-4 mb-8">
         <div className="relative group">
-          <Avatar className="h-24 w-24 overflow-hidden">
-            <AvatarImage
-              src={profile?.avatar_url || ""}
-              alt={profile?.first_name || "Profile"}
-              onLoad={() => {}}
-              onError={(e) => {
-                console.error("Error loading avatar:", e);
-              }}
-              className="object-cover w-full h-full rounded-full"
-            />
-            <AvatarFallback className="bg-muted">
-              {profile?.first_name?.[0]?.toUpperCase() ?? "U"}
-            </AvatarFallback>
+          <Avatar className="h-24 w-24">
+            {profile?.avatar_url ? (
+              <AvatarImage
+                src={profile.avatar_url}
+                alt={profile?.first_name || "Profile"}
+                className="object-cover"
+                onError={(e) => {
+                  console.error("Error loading avatar:", e);
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none"; // Hide broken image
+                }}
+              />
+            ) : (
+              <AvatarFallback className="bg-muted">
+                {profile?.first_name?.[0]?.toUpperCase() ?? "U"}
+              </AvatarFallback>
+            )}
           </Avatar>
           <div
             className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -199,10 +224,9 @@ const Profile = () => {
           <input
             id="photo-upload"
             type="file"
-            accept="image/jpeg,image/jpg"
+            accept="image/*"
             className="hidden"
             onChange={handlePhotoUpload}
-            title="Upload Photo"
           />
         </div>
         <div>
@@ -294,7 +318,11 @@ const Profile = () => {
           </div>
           <div>
             <label className="text-sm font-medium">Price</label>
-            <p className="text-lg">{`¥${profile?.price_per_night.toLocaleString()} per night`}</p>
+            <p className="text-lg">{`¥${profile?.pricing?.base_rate.toLocaleString()} per night`}</p>
+          </div>
+          <div>
+            <label className="text-sm font-medium">Meal Plan</label>
+            <p className="text-lg">{profile?.meal_plan}</p>
           </div>
           <div>
             <label className="text-sm font-medium">Amenities</label>

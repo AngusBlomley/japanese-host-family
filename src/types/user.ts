@@ -30,7 +30,19 @@ export interface Profile {
   house_rules?: string[] | null;
   available_from?: string | null;
   available_to?: string | null;
-  price_per_night?: number | null;
+  pricing?: {
+    type: "weekly" | "monthly";
+    base_rate: number;
+    includes: {
+      breakfast: boolean;
+      lunch: boolean;
+      dinner: boolean;
+      utilities: boolean;
+      wifi: boolean;
+      laundry: boolean;
+    };
+  } | null;
+  meal_plan?: "none" | "breakfast_only" | "half_board" | "full_board" | null;
   license_number?: string | null;
   license_expiry?: string | null;
 
@@ -40,8 +52,57 @@ export interface Profile {
   dietary_restrictions?: string[] | null;
   preferred_location?: string[] | null;
   start_date?: string | null;
+  budget_period?: "weekly" | "monthly" | null;
   budget_min?: number | null;
   budget_max?: number | null;
+}
+
+export interface Listing {
+  id: string;
+  host_id: string;
+  title: string;
+  description: string;
+  address: string;
+  city: string;
+  postal_code: string;
+  prefecture: string;
+  pricing: {
+    type: "weekly" | "monthly";
+    base_rate: number;
+    includes: {
+      breakfast: boolean;
+      lunch: boolean;
+      dinner: boolean;
+      utilities: boolean;
+      wifi: boolean;
+      laundry: boolean;
+    };
+    additional_fees?: {
+      description: string;
+      amount: number;
+    }[];
+  };
+  room_type: "private" | "shared";
+  max_guests: number;
+  amenities: string[];
+  house_rules: string[];
+  images: string[];
+  available_from: string;
+  available_to: string;
+  created_at: string;
+  updated_at: string;
+  status: "draft" | "published" | "archived";
+  location: {
+    latitude: number;
+    longitude: number;
+  };
+  meal_plan: "none" | "breakfast_only" | "half_board" | "full_board";
+  student_requirements?: {
+    min_age?: number;
+    max_age?: number;
+    language_level?: string;
+    minimum_stay_weeks?: number;
+  };
 }
 
 // Type guards to check role-specific fields

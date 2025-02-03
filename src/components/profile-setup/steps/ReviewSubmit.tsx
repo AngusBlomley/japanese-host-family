@@ -80,7 +80,8 @@ const ReviewSubmit = ({
           house_rules: formData.house_rules,
           available_from: formData.available_from,
           available_to: formData.available_to,
-          price_per_night: formData.price_per_night,
+          pricing: formData.pricing,
+          meal_plan: formData.meal_plan,
         }
       : {
           study_purpose: formData.study_purpose,

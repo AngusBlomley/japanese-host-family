@@ -9,13 +9,14 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
-import Landing from "@/pages/Landing";
+import Index from "@/pages/Index";
 import Auth from "@/pages/Auth";
 import NotFound from "@/pages/NotFound";
 import AuthCallback from "@/pages/AuthCallback";
 import ProfileSetup from "@/pages/ProfileSetup";
 import Dashboard from "@/pages/Dashboard";
 import Profile from "@/pages/Profile";
+import NewListing from "@/pages/NewListing";
 
 const queryClient = new QueryClient();
 
@@ -41,11 +42,19 @@ const App = () => (
       <Router>
         <Routes>
           {/* Public routes */}
-          <Route path="/" element={<Landing />} />
+          <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
 
           {/* Protected routes */}
+          <Route
+            path="/listings/new"
+            element={
+              <ProtectedRoute>
+                <NewListing />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
