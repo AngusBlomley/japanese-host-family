@@ -19,38 +19,76 @@ const AuthCallback = () => {
   const isReset = type === "recovery" && token;
 
   useEffect(() => {
-    if (!isReset) {
-      const handleAuthCallback = async () => {
-        try {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) {
+    const handleAuthCallback = async () => {
+      try {
+        // If it's a password reset flow
+        if (type === "recovery") {
+          if (!token) {
+            console.error("No reset token found");
             navigate("/auth");
             return;
           }
-
-          // Check if user has a complete profile
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("profile_complete")
-            .eq("user_id", user.id)
-            .single();
-
-          if (!profile || !profile.profile_complete) {
-            navigate("/profile-setup");
-          } else {
-            navigate("/dashboard");
-          }
-        } catch (error) {
-          console.error("Error in auth callback:", error);
-          navigate("/auth");
+          // Show the password reset form instead of auto-redirecting
+          return;
         }
-      };
 
-      handleAuthCallback();
-    }
-  }, [navigate, isReset]);
+        // Normal OAuth callback flow
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          navigate("/auth");
+          return;
+        }
+
+        // Check if profile exists
+        const { data: profile, error: fetchError } = await supabase
+          .from("profiles")
+          .select("profile_complete")
+          .eq("user_id", user.id)
+          .single();
+
+        if (fetchError && fetchError.code === "PGRST116") {
+          // Profile doesn't exist, create it
+          const { error: createError } = await supabase
+            .from("profiles")
+            .insert([
+              {
+                user_id: user.id,
+                role: "guest",
+                first_name: user.user_metadata?.full_name?.split(" ")[0] || "",
+                last_name:
+                  user.user_metadata?.full_name
+                    ?.split(" ")
+                    .slice(1)
+                    .join(" ") || "",
+                profile_complete: false,
+                languages: [],
+                avatar_url: user.user_metadata?.avatar_url || null,
+              },
+            ]);
+
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            throw createError;
+          }
+          navigate("/profile-setup");
+          return;
+        }
+
+        if (!profile || !profile.profile_complete) {
+          navigate("/profile-setup");
+        } else {
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error in auth callback:", error);
+        navigate("/auth");
+      }
+    };
+
+    handleAuthCallback();
+  }, [navigate, token, type]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();

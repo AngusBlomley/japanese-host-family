@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,9 @@ const Auth = () => {
     try {
       if (isResetPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?reset=true`,
+          redirectTo: import.meta.env.PROD
+            ? "https://japanese-host-family.vercel.app/auth/callback?type=recovery"
+            : `${window.location.origin}/auth/callback?type=recovery`,
         });
         if (error) throw error;
         toast({
@@ -84,7 +86,11 @@ const Auth = () => {
 
         const recaptchaToken = await verifyRecaptcha();
 
-        const { error } = await supabase.auth.signUp({
+        // Sign up the user
+        const {
+          data: { user },
+          error: signUpError,
+        } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -93,7 +99,24 @@ const Auth = () => {
             },
           },
         });
-        if (error) throw error;
+
+        if (signUpError) throw signUpError;
+        if (!user) throw new Error("Signup failed");
+
+        // Create initial profile
+        const { error: profileError } = await supabase.from("profiles").insert([
+          {
+            user_id: user.id,
+            role: "guest", // Temporary default role that will be updated during profile setup
+            first_name: "",
+            last_name: "",
+            profile_complete: false,
+            languages: [],
+          },
+        ]);
+
+        if (profileError) throw profileError;
+
         toast({
           title: "Success!",
           description: "Please check your email to verify your account.",
@@ -116,7 +139,7 @@ const Auth = () => {
         ? "https://japanese-host-family.vercel.app/auth/callback"
         : `${window.location.origin}/auth/callback`;
 
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: redirectUrl,
@@ -126,6 +149,7 @@ const Auth = () => {
           },
         },
       });
+
       if (error) throw error;
     } catch (error: any) {
       toast({
@@ -259,14 +283,26 @@ const Auth = () => {
                 : "Already have an account? Sign in"}
             </button>
 
-            {isLogin && (
+            {isLogin && !isResetPassword && (
               <div>
                 <button
                   type="button"
-                  onClick={() => setIsResetPassword(!isResetPassword)}
+                  onClick={() => setIsResetPassword(true)}
                   className="text-sm text-blue-600 hover:text-blue-800"
                 >
-                  {isResetPassword ? "Back to login" : "Forgot your password?"}
+                  Forgot your password?
+                </button>
+              </div>
+            )}
+
+            {isResetPassword && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setIsResetPassword(false)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Back to login
                 </button>
               </div>
             )}
