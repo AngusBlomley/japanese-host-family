@@ -73,10 +73,14 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
       </div>
 
       {/* Profile Photo & Basic Info */}
-      <Card className={cn(
-        "p-6",
-        theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
-      )}>
+      <Card
+        className={cn(
+          "p-6",
+          theme === "dark"
+            ? "bg-gray-700 border-gray-600"
+            : "bg-white border-gray-200"
+        )}
+      >
         <div className="flex items-start gap-6">
           <div className="relative group">
             <Avatar className="h-24 w-24">
@@ -113,14 +117,20 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
       </Card>
 
       {/* Contact Information */}
-      <Card className={cn(
-        "p-6",
-        theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
-      )}>
-        <h3 className={cn(
-          "text-lg font-semibold mb-4",
-          theme === "dark" ? "text-gray-100" : "text-gray-900"
-        )}>
+      <Card
+        className={cn(
+          "p-6",
+          theme === "dark"
+            ? "bg-gray-700 border-gray-600"
+            : "bg-white border-gray-200"
+        )}
+      >
+        <h3
+          className={cn(
+            "text-lg font-semibold mb-4",
+            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          )}
+        >
           Contact Information
         </h3>
         <div className="grid grid-cols-2 gap-6">
@@ -145,14 +155,20 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
 
       {/* Role Specific Information */}
       {profile.role === "host" ? (
-        <Card className={cn(
-          "p-6",
-          theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
-        )}>
-          <h3 className={cn(
-            "text-lg font-semibold mb-4",
-            theme === "dark" ? "text-gray-100" : "text-gray-900"
-          )}>
+        <Card
+          className={cn(
+            "p-6",
+            theme === "dark"
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          )}
+        >
+          <h3
+            className={cn(
+              "text-lg font-semibold mb-4",
+              theme === "dark" ? "text-gray-100" : "text-gray-900"
+            )}
+          >
             Host Information
           </h3>
           <div className="grid grid-cols-2 gap-6">
@@ -203,14 +219,20 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
           </div>
         </Card>
       ) : (
-        <Card className={cn(
-          "p-6",
-          theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
-        )}>
-          <h3 className={cn(
-            "text-lg font-semibold mb-4",
-            theme === "dark" ? "text-gray-100" : "text-gray-900"
-          )}>
+        <Card
+          className={cn(
+            "p-6",
+            theme === "dark"
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          )}
+        >
+          <h3
+            className={cn(
+              "text-lg font-semibold mb-4",
+              theme === "dark" ? "text-gray-100" : "text-gray-900"
+            )}
+          >
             Student Information
           </h3>
           <div className="grid grid-cols-2 gap-6">

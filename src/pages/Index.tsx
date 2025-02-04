@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface SearchFilters {
   location: string;
@@ -327,6 +328,7 @@ const Index = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { updateLanguage } = useLanguage();
 
   const [filters, setFilters] = useState<SearchFilters>({
     location: "",
@@ -451,6 +453,13 @@ const Index = () => {
   };
 
   const filteredListings = filterListings(listings);
+
+  // When you need to change language:
+  const handleLanguageChange = (newLanguage: string) => {
+    updateLanguage(newLanguage).catch((error) => {
+      console.error("Error changing language:", error);
+    });
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;

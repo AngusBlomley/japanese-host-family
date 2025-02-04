@@ -21,6 +21,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@/context/ThemeContext";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface SettingsProps {
   profile: Profile;
@@ -31,6 +34,9 @@ export const Settings = ({ profile }: SettingsProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const { updateLanguage } = useLanguage();
 
   const handleDeleteAccount = async () => {
     try {
@@ -63,16 +69,37 @@ export const Settings = ({ profile }: SettingsProps) => {
     }
   };
 
+  const handleLanguageChange = async (language: string) => {
+    try {
+      await updateLanguage(language);
+      i18n.changeLanguage(language);
+      toast({
+        title: t("success"),
+        description: t("language Updated"),
+      });
+    } catch (error) {
+      console.error("Error updating language:", error);
+      toast({
+        title: t("error"),
+        description: t("language Update Failed"),
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div className="pb-6 border-b">
         <div className="flex items-center gap-2">
           <SettingsIcon className="h-8 w-8 text-gray-600" />
-          <h2 className="text-2xl font-bold">Settings</h2>
+          <h2 className="text-2xl font-bold">{t("settings", "Settings")}</h2>
         </div>
         <p className="mt-2 text-gray-600">
-          Manage your account preferences and settings
+          {t(
+            "settingsDescription",
+            "Manage your account preferences and settings"
+          )}
         </p>
       </div>
 
@@ -130,7 +157,7 @@ export const Settings = ({ profile }: SettingsProps) => {
             theme === "dark" ? "text-gray-100" : "text-gray-900"
           )}
         >
-          Language
+          {t("language")}
         </h3>
         <div className="flex items-start justify-between">
           <div>
@@ -140,19 +167,21 @@ export const Settings = ({ profile }: SettingsProps) => {
                 theme === "dark" ? "text-gray-400" : "text-gray-500"
               )}
             >
-              Choose your preferred language
+              {t("choose Language", "Choose your preferred language")}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
             <select
+              title="Language"
               className={cn(
                 "form-select text-sm",
                 theme === "dark"
                   ? "bg-gray-700 text-gray-100"
                   : "bg-white text-gray-900"
               )}
-              aria-label="Select language"
+              value={i18n.language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
             >
               <option value="en">English</option>
               <option value="ja">日本語</option>
