@@ -1,3 +1,4 @@
+import { THEME } from "@/constants/storage";
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 type Theme = "light" | "dark";
@@ -27,7 +28,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     // Apply theme to document
     document.documentElement.classList.remove("light", "dark");
     document.documentElement.classList.add(theme);
-    localStorage.setItem("theme", theme);
+    localStorage.setItem(THEME, theme);
   }, [theme]);
 
   const toggleTheme = () => {

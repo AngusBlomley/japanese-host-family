@@ -9,7 +9,7 @@ import BasicInfo from "@/components/profile-setup/steps/BasicInfo";
 import HostDetails from "@/components/profile-setup/steps/HostDetails";
 import GuestDetails from "@/components/profile-setup/steps/GuestDetails";
 import ReviewSubmit from "@/components/profile-setup/steps/ReviewSubmit";
-import { STORAGE_KEYS } from "@/constants/storage";
+import { PROFILE_SETUP } from "@/constants/storage";
 import type { Profile } from "@/types/user";
 import Header from "@/components/layout/Header";
 
@@ -21,12 +21,12 @@ const steps = {
 const ProfileSetup = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [role, setRole] = useState<UserRole | null>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PROFILE_SETUP.ROLE);
+    const saved = localStorage.getItem(PROFILE_SETUP.ROLE);
     return saved ? JSON.parse(saved) : null;
   });
 
   const [formData, setFormData] = useState<Profile>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.PROFILE_SETUP.FORM_DATA);
+    const saved = localStorage.getItem(PROFILE_SETUP.FORM_DATA);
     return saved
       ? JSON.parse(saved)
       : {
@@ -62,14 +62,14 @@ const ProfileSetup = () => {
   // Update localStorage whenever formData changes
   useEffect(() => {
     localStorage.setItem(
-      STORAGE_KEYS.PROFILE_SETUP.FORM_DATA,
+      PROFILE_SETUP.FORM_DATA,
       JSON.stringify(formData)
     );
   }, [formData]);
 
   // Update localStorage whenever role changes
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.PROFILE_SETUP.ROLE, JSON.stringify(role));
+    localStorage.setItem(PROFILE_SETUP.ROLE, JSON.stringify(role));
   }, [role]);
 
   const navigate = useNavigate();
@@ -174,8 +174,8 @@ const ProfileSetup = () => {
         description: "Your profile has been successfully set up.",
       });
 
-      localStorage.removeItem(STORAGE_KEYS.PROFILE_SETUP.FORM_DATA);
-      localStorage.removeItem(STORAGE_KEYS.PROFILE_SETUP.ROLE);
+      localStorage.removeItem(PROFILE_SETUP.FORM_DATA);
+      localStorage.removeItem(PROFILE_SETUP.ROLE);
       navigate("/dashboard");
     } catch (error: unknown) {
       console.error("Full error:", error);
