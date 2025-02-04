@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Conversation, Profile as ProfileType } from "@/types/user";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -9,24 +9,20 @@ import { ProfileSidebar } from "@/components/profile/ProfileSidebar";
 import Header from "@/components/layout/Header";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import ChatWindow from "@/components/chat/ChatWindow";
+
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
 
 const Profile = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
   >(null);
+  const { theme } = useTheme();
 
-  useEffect(() => {
-    fetchProfile();
-    fetchConversations();
-  }, [user]);
-
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const {
         data: { user },
@@ -46,9 +42,9 @@ const Profile = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     if (!user) return;
 
     const { data: profile } = await supabase
@@ -90,13 +86,16 @@ const Profile = () => {
       last_message: conv.messages?.[0],
     }));
 
-    setConversations(conversationsWithLastMessage);
-
     // Auto-select first conversation only if we have conversations and none selected
     if (conversationsWithLastMessage.length > 0 && !selectedConversation) {
       setSelectedConversation(conversationsWithLastMessage[0].id);
     }
-  };
+  }, [user, selectedConversation]);
+
+  useEffect(() => {
+    fetchProfile();
+    fetchConversations();
+  }, [fetchProfile, fetchConversations]);
 
   if (isLoading) {
     return (
@@ -111,10 +110,27 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div
+      className={cn(
+        "min-h-screen",
+        theme === "dark" ? "bg-gray-900" : "bg-gray-50"
+      )}
+    >
       <Header />
-      <main className="container max-w-7xl mx-auto px-4 py-6">
-        <div className="bg-white rounded-lg border shadow-sm">
+      <main
+        className={cn(
+          "container max-w-7xl mx-auto px-4 py-6",
+          theme === "dark" ? "text-gray-100" : "text-gray-900"
+        )}
+      >
+        <div
+          className={cn(
+            "rounded-lg border shadow-sm",
+            theme === "dark"
+              ? "bg-gray-800 border-gray-700"
+              : "bg-white border-gray-200"
+          )}
+        >
           <Tabs
             defaultValue="personal"
             className="flex w-full min-h-[calc(100vh-12rem)]"

@@ -3,13 +3,7 @@ import { Profile } from "@/types/user";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  Settings as SettingsIcon,
-  Moon,
-  Globe,
-  Bell,
-  Trash2,
-} from "lucide-react";
+import { Settings as SettingsIcon, Globe, Bell, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +19,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
 
 interface SettingsProps {
   profile: Profile;
@@ -34,6 +30,7 @@ export const Settings = ({ profile }: SettingsProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
 
   const handleDeleteAccount = async () => {
     try {
@@ -80,35 +77,81 @@ export const Settings = ({ profile }: SettingsProps) => {
       </div>
 
       {/* Appearance */}
-      <Card className="p-6">
+      <Card
+        className={cn(
+          "p-6",
+          theme === "dark"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
+        )}
+      >
+        <h3
+          className={cn(
+            "text-lg font-semibold mb-4",
+            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          )}
+        >
+          Appearance
+        </h3>
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Appearance</h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p
+              className={cn(
+                "text-sm",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}
+            >
               Customize how the app looks on your device
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Moon className="h-4 w-4" />
-            <Label htmlFor="dark-mode">Dark Mode</Label>
-            <Switch id="dark-mode" />
+            <Switch
+              id="theme-toggle"
+              checked={theme === "dark"}
+              onCheckedChange={toggleTheme}
+            />
+            <Label htmlFor="theme-toggle">Dark Mode</Label>
           </div>
         </div>
       </Card>
 
       {/* Language */}
-      <Card className="p-6">
+      <Card
+        className={cn(
+          "p-6",
+          theme === "dark"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
+        )}
+      >
+        <h3
+          className={cn(
+            "text-lg font-semibold mb-4",
+            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          )}
+        >
+          Language
+        </h3>
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Language</h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p
+              className={cn(
+                "text-sm",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}
+            >
               Choose your preferred language
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
             <select
-              className="form-select text-sm"
+              className={cn(
+                "form-select text-sm",
+                theme === "dark"
+                  ? "bg-gray-700 text-gray-100"
+                  : "bg-white text-gray-900"
+              )}
               aria-label="Select language"
             >
               <option value="en">English</option>
@@ -119,28 +162,80 @@ export const Settings = ({ profile }: SettingsProps) => {
       </Card>
 
       {/* Notifications */}
-      <Card className="p-6">
+      <Card
+        className={cn(
+          "p-6",
+          theme === "dark"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
+        )}
+      >
+        <h3
+          className={cn(
+            "text-lg font-semibold mb-4",
+            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          )}
+        >
+          Notifications
+        </h3>
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold">Notifications</h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <p
+              className={cn(
+                "text-sm",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}
+            >
               Configure your notification preferences
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
-            <Label htmlFor="notifications">Email Notifications</Label>
-            <Switch id="notifications" />
+            <Label
+              htmlFor="notifications"
+              className={cn(
+                theme === "dark" ? "text-gray-100" : "text-gray-900"
+              )}
+            >
+              Email Notifications
+            </Label>
+            <Switch
+              id="notifications"
+              className={cn(
+                theme === "dark"
+                  ? "data-[state=checked]:bg-gray-700 data-[state=unchecked]:bg-gray-600"
+                  : "data-[state=checked]:bg-gray-200 data-[state=unchecked]:bg-gray-100"
+              )}
+            />
           </div>
         </div>
       </Card>
 
       {/* Danger Zone */}
-      <Card className="p-6 border-red-200">
+      <Card
+        className={cn(
+          "p-6 border-red-200",
+          theme === "dark"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
+        )}
+      >
         <div className="flex items-start justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-red-600">Danger Zone</h3>
-            <p className="text-sm text-gray-500 mt-1">
+            <h3
+              className={cn(
+                "text-lg font-semibold text-red-600",
+                theme === "dark" ? "text-gray-100" : "text-gray-900"
+              )}
+            >
+              Danger Zone
+            </h3>
+            <p
+              className={cn(
+                "text-sm",
+                theme === "dark" ? "text-gray-400" : "text-gray-500"
+              )}
+            >
               Permanently delete your account and all associated data
             </p>
           </div>

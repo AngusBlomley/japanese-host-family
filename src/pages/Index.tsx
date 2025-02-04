@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Search, Heart, Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Star, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -20,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
 
 interface SearchFilters {
   location: string;
@@ -86,6 +89,7 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const { theme } = useTheme();
 
   // Check if listing is saved when component mounts
   useEffect(() => {
@@ -183,7 +187,11 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
           <div className="flex gap-2">
             <Button
               variant="secondary"
-              className="bg-gray-100 hover:bg-gray-200"
+              className={cn(
+                theme === "dark"
+                  ? "bg-gray-800 hover:bg-gray-700"
+                  : "bg-gray-100 hover:bg-gray-200"
+              )}
               onClick={() => navigate(`/listings/${listing.id}`)}
             >
               View Details
@@ -191,13 +199,16 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="bg-gray-100 hover:bg-gray-200"
+              className={cn(
+                theme === "dark"
+                  ? "bg-gray-800 hover:bg-gray-700"
+                  : "bg-gray-100 hover:bg-gray-200"
+              )}
               onClick={handleSave}
               disabled={isSaving}
             >
               <Star
-                className={`${isSaved ? "fill-yellow-400" : "fill-none"} 
-              `}
+                className={`${isSaved ? "fill-yellow-400" : "fill-none"}`}
               />
             </Button>
           </div>

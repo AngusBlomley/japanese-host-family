@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { ConversationMenu } from "@/components/chat/ConversationMenu";
 import { Badge } from "@/components/ui/badge";
 import type { Conversation } from "@/types/user";
+import { useTheme } from "@/context/ThemeContext";
 
 const ChatPage = () => {
   const { user } = useAuth();
@@ -22,6 +23,7 @@ const ChatPage = () => {
     string | null
   >(null);
   const navigate = useNavigate();
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (conversationId) {
@@ -107,7 +109,7 @@ const ChatPage = () => {
     };
 
     fetchConversations();
-  }, [user]);
+  }, [conversationId, selectedConversation, setSearchParams, user]);
 
   // Add function to update conversation state
   const updateConversationState = (
@@ -147,10 +149,14 @@ const ChatPage = () => {
               <button
                 key={conversation.id}
                 className={cn(
-                  "w-full p-4 text-left border-b last:border-b-0 hover:bg-gray-50 relative transition-colors",
-                  selectedConversation === conversation.id && "bg-gray-50",
+                  "w-full p-4 text-left border-b last:border-b-0 relative transition-colors",
+                  selectedConversation === conversation.id && theme === "light"
+                    ? "bg-gray-100"
+                    : "bg-gray-800",
                   conversation.is_pinned && "bg-blue-50/50",
+
                   conversation.is_blocked && "opacity-75",
+
                   conversation.is_archived && "opacity-50"
                 )}
                 onClick={() => setSelectedConversation(conversation.id)}

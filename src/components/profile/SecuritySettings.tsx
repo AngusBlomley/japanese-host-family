@@ -22,6 +22,8 @@ import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
 
 interface SecuritySettingsProps {
   profile: Profile;
@@ -41,6 +43,7 @@ const passwordSchema = z
 type PasswordForm = z.infer<typeof passwordSchema>;
 
 export const SecuritySettings = ({ profile }: SecuritySettingsProps) => {
+  const { theme } = useTheme();
   const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -151,10 +154,24 @@ export const SecuritySettings = ({ profile }: SecuritySettingsProps) => {
 
       {/* Security Options */}
       <div className="grid gap-6">
-        <Card className="p-6">
+        <Card
+          className={cn(
+            "p-6",
+            theme === "dark"
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          )}
+        >
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold">Password</h3>
+              <h3
+                className={cn(
+                  "text-lg font-semibold mb-4",
+                  theme === "dark" ? "text-gray-100" : "text-gray-900"
+                )}
+              >
+                Password
+              </h3>
               <p className="text-sm text-gray-500 mt-1">
                 Change your account password
               </p>
@@ -213,10 +230,22 @@ export const SecuritySettings = ({ profile }: SecuritySettingsProps) => {
           )}
         </Card>
 
-        <Card className="p-6">
+        <Card
+          className={cn(
+            "p-6",
+            theme === "dark"
+              ? "bg-gray-700 border-gray-600"
+              : "bg-white border-gray-200"
+          )}
+        >
           <div className="flex items-start justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-red-600">
+              <h3
+                className={cn(
+                  "text-lg font-semibold text-red-600 mb-4",
+                  theme === "dark" ? "text-gray-100" : "text-gray-900"
+                )}
+              >
                 Delete Account
               </h3>
               <p className="text-sm text-gray-500 mt-1">

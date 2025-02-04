@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { PasswordInput } from "@/components/ui/password-input";
+import { useTheme } from "@/context/ThemeContext";
+import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 declare global {
   interface Window {
@@ -31,6 +34,7 @@ const Auth = () => {
   const [isResetPassword, setIsResetPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { theme } = useTheme();
 
   const verifyRecaptcha = async () => {
     try {
@@ -153,8 +157,20 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
+    <div
+      className={cn(
+        "min-h-screen flex items-center justify-center",
+        theme === "dark" ? "bg-gray-900" : "bg-gray-50"
+      )}
+    >
+      <Card
+        className={cn(
+          "w-full max-w-md p-8",
+          theme === "dark"
+            ? "bg-gray-800 border-gray-700"
+            : "bg-white border-gray-200"
+        )}
+      >
         <div className="text-center">
           <h2 className="text-3xl font-bold">
             {isResetPassword
@@ -163,7 +179,12 @@ const Auth = () => {
               ? "Welcome Back"
               : "Create Account"}
           </h2>
-          <p className="mt-2 text-gray-600">
+          <p
+            className={cn(
+              "mt-2",
+              theme === "dark" ? "text-gray-300" : "text-gray-600"
+            )}
+          >
             {isResetPassword
               ? "Enter your email to receive a reset link"
               : "Connect with Japanese host families"}
@@ -172,7 +193,7 @@ const Auth = () => {
 
         <Button
           onClick={handleGoogleSignIn}
-          className="w-full flex items-center justify-center gap-2"
+          className="w-full flex items-center justify-center gap-2 mt-8"
           variant="outline"
         >
           <svg
@@ -202,12 +223,24 @@ const Auth = () => {
           Sign in with Google
         </Button>
 
-        <div className="relative">
+        <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+            <span
+              className={cn(
+                "w-full border-t",
+                theme === "dark" ? "border-gray-700" : "border-gray-200"
+              )}
+            />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-2 text-muted-foreground">
+            <span
+              className={cn(
+                "px-2",
+                theme === "dark"
+                  ? "text-gray-300 bg-gray-800"
+                  : "text-gray-500 bg-white"
+              )}
+            >
               Or continue with
             </span>
           </div>
@@ -324,7 +357,7 @@ const Auth = () => {
             apply.
           </p>
         )}
-      </div>
+      </Card>
     </div>
   );
 };

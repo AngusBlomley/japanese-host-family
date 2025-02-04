@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useConversation } from "@/hooks/useConversation";
 import type { Conversation } from "@/types/user";
+import { useTheme } from "@/context/ThemeContext";
 
 interface ConversationMenuProps {
   conversation: Conversation;
@@ -26,12 +27,14 @@ export const ConversationMenu = ({
   conversation,
   onStateChange,
 }: ConversationMenuProps) => {
+  const { theme } = useTheme();
   const {
     toggleStar,
     toggleMute,
     toggleBlock,
     archive,
     unarchive,
+
     deleteConversation,
   } = useConversation(conversation.id);
 
@@ -48,7 +51,13 @@ export const ConversationMenu = ({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-        <div className="cursor-pointer p-1 hover:bg-gray-100 rounded-full">
+        <div
+          className={
+            theme === "dark"
+              ? "cursor-pointer p-1 hover:bg-gray-700 rounded-full"
+              : "cursor-pointer p-1 hover:bg-white rounded-full"
+          }
+        >
           <MoreVertical className="h-4 w-4" />
         </div>
       </DropdownMenuTrigger>

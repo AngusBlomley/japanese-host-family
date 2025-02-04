@@ -7,6 +7,8 @@ import { Pencil } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Card } from "@/components/ui/card";
 import { User } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useTheme } from "@/context/ThemeContext";
 
 interface PersonalInfoProps {
   profile: Profile;
@@ -14,6 +16,7 @@ interface PersonalInfoProps {
 
 export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
   const { toast } = useToast();
+  const { theme } = useTheme();
   const [avatarUrl, setAvatarUrl] = useState(profile.avatar_url);
 
   const handlePhotoUpload = async (
@@ -70,7 +73,10 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
       </div>
 
       {/* Profile Photo & Basic Info */}
-      <Card className="p-6">
+      <Card className={cn(
+        "p-6",
+        theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
+      )}>
         <div className="flex items-start gap-6">
           <div className="relative group">
             <Avatar className="h-24 w-24">
@@ -107,8 +113,16 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
       </Card>
 
       {/* Contact Information */}
-      <Card className="p-6">
-        <h3 className="text-lg font-semibold mb-4">Contact Information</h3>
+      <Card className={cn(
+        "p-6",
+        theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
+      )}>
+        <h3 className={cn(
+          "text-lg font-semibold mb-4",
+          theme === "dark" ? "text-gray-100" : "text-gray-900"
+        )}>
+          Contact Information
+        </h3>
         <div className="grid grid-cols-2 gap-6">
           <div>
             <h4 className="text-sm font-medium text-gray-500">Phone</h4>
@@ -131,8 +145,16 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
 
       {/* Role Specific Information */}
       {profile.role === "host" ? (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Host Information</h3>
+        <Card className={cn(
+          "p-6",
+          theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
+        )}>
+          <h3 className={cn(
+            "text-lg font-semibold mb-4",
+            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          )}>
+            Host Information
+          </h3>
           <div className="grid grid-cols-2 gap-6">
             <div>
               <h4 className="text-sm font-medium text-gray-500">Location</h4>
@@ -181,8 +203,16 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
           </div>
         </Card>
       ) : (
-        <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-4">Student Information</h3>
+        <Card className={cn(
+          "p-6",
+          theme === "dark" ? "bg-gray-700 border-gray-600" : "bg-white border-gray-200"
+        )}>
+          <h3 className={cn(
+            "text-lg font-semibold mb-4",
+            theme === "dark" ? "text-gray-100" : "text-gray-900"
+          )}>
+            Student Information
+          </h3>
           <div className="grid grid-cols-2 gap-6">
             <div>
               <h4 className="text-sm font-medium text-gray-500">
