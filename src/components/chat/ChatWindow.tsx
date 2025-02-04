@@ -6,36 +6,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { Message } from "../../types/user";
+import { ScrollArea } from "@/components/ui/scroll-area"; // Note: Only ScrollArea is imported
 
 interface ChatWindowProps {
   conversationId: string;
+  currentProfile: { id: string } | null;
 }
 
-const ChatWindow = ({ conversationId }: ChatWindowProps) => {
+const ChatWindow = ({ conversationId, currentProfile }: ChatWindowProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [currentProfile, setCurrentProfile] = useState<{ id: string } | null>(
-    null
-  );
   const [isDeleted, setIsDeleted] = useState(false);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user?.id)
-        .single();
-      setCurrentProfile(data);
-    };
-    fetchProfile();
-  }, [user]);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const initialLimit = 10;
 
   useEffect(() => {
     const fetchMessages = async () => {
-      // First check if conversation is deleted
+      // Check if conversation is deleted
       const { data: conversation } = await supabase
         .from("conversations")
         .select("is_deleted")
@@ -47,6 +38,7 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
         return;
       }
 
+      // NOTE: Fetch the latest messages paginated (newest first) then reverse so they are in chronological order
       const { data, error } = await supabase
         .from("messages")
         .select(
@@ -61,15 +53,24 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
         `
         )
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(initialLimit);
 
       if (error) {
         console.error("Error fetching messages:", error);
         return;
       }
 
-      setMessages(data);
-      scrollToBottom();
+      if (data) {
+        const messagesAsc = data.reverse();
+        setMessages(messagesAsc);
+        if (data.length < initialLimit) setHasMore(false);
+
+        // Scroll to the bottom after initial load
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+        }, 100);
+      }
 
       // Mark messages as read
       if (user) {
@@ -92,7 +93,7 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
 
     fetchMessages();
 
-    // Subscribe to conversation changes
+    // Subscribe to changes for the conversation (e.g., deletion)
     const conversationChannel = supabase
       .channel(`conversation:${conversationId}`)
       .on(
@@ -112,8 +113,8 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
       )
       .subscribe();
 
-    // Subscribe to new messages with proper payload handling
-    const channel = supabase
+    // Subscribe to new messages
+    const messageChannel = supabase
       .channel(`conversation:${conversationId}`)
       .on(
         "postgres_changes",
@@ -123,46 +124,48 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
           table: "messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        async (payload) => {
-          console.log("New message received:", payload);
+        (payload) => {
+          // Use a functional update so we don't capture stale state
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === payload.new.id)) return prev;
 
-          // Fetch the complete message with sender info
-          const { data: newMessage, error } = await supabase
-            .from("messages")
-            .select(
-              `
-              *,
-              sender:profiles(
-                id,
-                first_name,
-                last_name,
-                avatar_url
-              )
-            `
-            )
-            .eq("id", payload.new.id)
-            .single();
-
-          if (error) {
-            console.error("Error fetching new message:", error);
-            return;
-          }
-
-          setMessages((current) => [...current, newMessage]);
-          scrollToBottom();
+            (async () => {
+              const { data: newMsgData, error } = await supabase
+                .from("messages")
+                .select(
+                  `
+                  *,
+                  sender:profiles(
+                    id,
+                    first_name,
+                    last_name,
+                    avatar_url
+                  )
+                `
+                )
+                .eq("id", payload.new.id)
+                .single();
+              if (error) {
+                console.error("Error fetching new message:", error);
+                return;
+              }
+              setMessages((current) => [...current, newMsgData]);
+              // Scroll to bottom when a new message arrives
+              setTimeout(() => {
+                messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
+              }, 50);
+            })();
+            return prev;
+          });
         }
       )
       .subscribe();
 
     return () => {
       conversationChannel.unsubscribe();
-      channel.unsubscribe();
+      messageChannel.unsubscribe();
     };
   }, [conversationId, user]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   const sendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,40 +183,95 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
         return;
       }
 
-      // First insert the message
-      const { data: insertedMessage, error } = await supabase
-        .from("messages")
-        .insert({
-          conversation_id: conversationId,
-          sender_id: profile.id,
-          content: newMessage.trim(),
-        })
-        .select(
-          `
-          *,
-          sender:profiles(
-            id,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `
-        )
-        .single();
+      // Insert the new message (the realtime subscription will update the UI)
+      const { error } = await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: profile.id,
+        content: newMessage.trim(),
+      });
 
       if (error) {
         console.error("Error sending message:", error);
         return;
       }
 
-      // Immediately update the UI with the new message
-      setMessages((current) => [...current, insertedMessage]);
       setNewMessage("");
-      scrollToBottom();
     } catch (error) {
       console.error("Error in sendMessage:", error);
     }
   };
+
+  const groupMessagesByDate = (msgs: Message[]) => {
+    const grouped: { [date: string]: Message[] } = {};
+    msgs.forEach((message) => {
+      const date = new Date(message.created_at).toLocaleDateString();
+      if (!grouped[date]) {
+        grouped[date] = [];
+      }
+      grouped[date].push(message);
+    });
+    return grouped;
+  };
+
+  // When the user scrolls near the top, fetch older messages (if any)
+  const handleScroll = async (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop } = e.currentTarget;
+    // trigger if near the top (threshold < 50) and if there are older messages
+    if (scrollTop < 50 && hasMore && !isLoadingOlderMessages) {
+      setIsLoadingOlderMessages(true);
+      try {
+        const currentScrollHeight =
+          messagesContainerRef.current?.scrollHeight || 0;
+        const oldestMessage = messages[0];
+        if (oldestMessage) {
+          const { data: olderMessages, error } = await supabase
+            .from("messages")
+            .select(
+              `
+              *,
+              sender:profiles(
+                id,
+                first_name,
+                last_name,
+                avatar_url
+              )
+            `
+            )
+            .eq("conversation_id", conversationId)
+            .lt("created_at", oldestMessage.created_at)
+            .order("created_at", { ascending: false })
+            .limit(initialLimit);
+
+          if (error) throw error;
+
+          if (olderMessages && olderMessages.length > 0) {
+            const olderMessagesAsc = olderMessages.reverse();
+            setMessages((prev) => [...olderMessagesAsc, ...prev]);
+            if (olderMessages.length < initialLimit) {
+              setHasMore(false);
+            }
+            // Maintain scroll position by calculating the new scroll height offset
+            setTimeout(() => {
+              if (messagesContainerRef.current) {
+                const newScrollHeight =
+                  messagesContainerRef.current.scrollHeight;
+                const scrollOffset = newScrollHeight - currentScrollHeight;
+                messagesContainerRef.current.scrollTop = scrollOffset;
+              }
+            }, 0);
+          } else {
+            setHasMore(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading older messages:", error);
+      } finally {
+        setIsLoadingOlderMessages(false);
+      }
+    }
+  };
+
+  const groupedMessages = groupMessagesByDate(messages);
 
   if (isDeleted) {
     return (
@@ -224,44 +282,69 @@ const ChatWindow = ({ conversationId }: ChatWindowProps) => {
   }
 
   return (
-    <div className="flex flex-col h-[600px]">
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => {
-          const isCurrentUser = message.sender_id === currentProfile?.id;
-
-          return (
-            <div
-              key={message.id}
-              className={`flex items-start gap-2 ${
-                isCurrentUser ? "flex-row-reverse" : ""
-              }`}
-            >
-              <Avatar className="h-8 w-8 shrink-0">
-                <AvatarImage src={message.sender.avatar_url} />
-                <AvatarFallback>{message.sender.first_name[0]}</AvatarFallback>
-              </Avatar>
-              <div
-                className={`max-w-[70%] rounded-lg p-3 ${
-                  isCurrentUser
-                    ? "bg-primary text-primary-foreground ml-auto"
-                    : "bg-muted"
-                }`}
-              >
-                <p>{message.content}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {new Date(message.created_at).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </p>
-              </div>
+    <div className="flex flex-col h-[calc(100vh-140px)]">
+      <ScrollArea
+        onScroll={handleScroll}
+        viewportRef={messagesContainerRef}
+        className="flex-1"
+      >
+        {isLoadingOlderMessages && (
+          <div className="text-center text-sm text-gray-500 my-4">
+            Loading older messages...
+          </div>
+        )}
+        {Object.entries(groupedMessages).map(([date, msgs]) => (
+          <div key={date}>
+            <div className="text-center text-sm text-gray-500 my-4">
+              {new Date(date).toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </div>
-          );
-        })}
+            <div className="space-y-2">
+              {msgs.map((message) => {
+                const isCurrentUser = message.sender_id === currentProfile?.id;
+                return (
+                  <div
+                    key={`msg-${message.id}-${message.created_at}`}
+                    className={`flex items-start gap-2 my-2 ${
+                      isCurrentUser ? "flex-row-reverse" : ""
+                    }`}
+                  >
+                    <Avatar className="h-8 w-8 shrink-0">
+                      <AvatarImage src={message.sender.avatar_url} />
+                      <AvatarFallback>
+                        {message.sender.first_name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={`max-w-[85%] md:max-w-[70%] rounded-lg p-2 md:p-3 ${
+                        isCurrentUser ? "bg-blue-400 text-white" : "bg-muted"
+                      }`}
+                    >
+                      <div className="flex flex-col gap-1">
+                        <p className="break-words whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                        <p className="text-[0.6rem] md:text-[0.65rem] opacity-70 whitespace-nowrap self-end">
+                          {new Date(message.created_at).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
         <div ref={messagesEndRef} />
-      </div>
-
-      <form onSubmit={sendMessage} className="p-4 border-t">
+      </ScrollArea>
+      <form onSubmit={sendMessage} className="p-2 md:p-4 border-t">
         <div className="flex gap-2">
           <Input
             value={newMessage}

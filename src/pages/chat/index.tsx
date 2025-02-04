@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Loader2, ArrowLeft, Pin, Star, Heart, BellOff } from "lucide-react";
+import { Loader2, Pin, Star, Heart, BellOff } from "lucide-react";
 import ChatWindow from "@/components/chat/ChatWindow";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import { cn } from "@/lib/utils";
 import { ConversationMenu } from "@/components/chat/ConversationMenu";
@@ -22,8 +21,10 @@ const ChatPage = () => {
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
   >(null);
-  const navigate = useNavigate();
   const { theme } = useTheme();
+  const [currentProfile, setCurrentProfile] = useState<{ id: string } | null>(
+    null
+  );
 
   useEffect(() => {
     if (conversationId) {
@@ -96,7 +97,6 @@ const ChatPage = () => {
       setConversations(conversationsWithLastMessage);
       setIsLoading(false);
 
-      // If no conversation selected and no URL param, select first one
       if (
         !selectedConversation &&
         !conversationId &&
@@ -111,7 +111,19 @@ const ChatPage = () => {
     fetchConversations();
   }, [conversationId, selectedConversation, setSearchParams, user]);
 
-  // Add function to update conversation state
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("user_id", user?.id)
+        .single();
+      setCurrentProfile(data);
+    };
+    fetchProfile();
+  }, [user]);
+
   const updateConversationState = (
     conversationId: string,
     updates: Partial<Conversation>
@@ -122,6 +134,15 @@ const ChatPage = () => {
       )
     );
   };
+
+  const sortedConversations = conversations.sort((a, b) => {
+    if (a.is_starred === b.is_starred) {
+      return (
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+    }
+    return a.is_starred ? -1 : 1;
+  });
 
   if (isLoading) {
     return (
@@ -135,29 +156,21 @@ const ChatPage = () => {
     <>
       <Header />
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <Button variant="ghost" onClick={() => navigate("/")} className="p-2">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-2xl font-bold">Messages</h1>
-        </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Conversations List */}
           <div className="border rounded-lg">
-            {conversations.map((conversation) => (
+            {sortedConversations.map((conversation) => (
               <button
                 key={conversation.id}
                 className={cn(
                   "w-full p-4 text-left border-b last:border-b-0 relative transition-colors",
-                  selectedConversation === conversation.id && theme === "light"
-                    ? "bg-gray-100"
-                    : "bg-gray-800",
-                  conversation.is_pinned && "bg-blue-50/50",
-
-                  conversation.is_blocked && "opacity-75",
-
-                  conversation.is_archived && "opacity-50"
+                  selectedConversation === conversation.id
+                    ? theme === "light"
+                      ? "bg-gray-100"
+                      : "bg-gray-800"
+                    : theme === "light"
+                    ? "hover:bg-gray-50"
+                    : "hover:bg-gray-700"
                 )}
                 onClick={() => setSelectedConversation(conversation.id)}
               >
@@ -192,15 +205,15 @@ const ChatPage = () => {
                     >
                       <AvatarImage
                         src={
-                          conversation.guest_id === user?.id
-                            ? conversation.host.avatar_url
-                            : conversation.guest.avatar_url
+                          conversation.host_id === user?.id
+                            ? conversation.guest.avatar_url
+                            : conversation.host.avatar_url
                         }
                       />
                       <AvatarFallback>
-                        {conversation.guest_id === user?.id
-                          ? conversation.host.first_name[0]
-                          : conversation.guest.first_name[0]}
+                        {conversation.host_id === user?.id
+                          ? conversation.guest.first_name[0]
+                          : conversation.host.first_name[0]}
                       </AvatarFallback>
                     </Avatar>
                     {conversation.is_starred && (
@@ -217,9 +230,9 @@ const ChatPage = () => {
                           conversation.is_blocked && "line-through"
                         )}
                       >
-                        {conversation.guest_id === user?.id
-                          ? `${conversation.host.first_name} ${conversation.host.last_name}`
-                          : `${conversation.guest.first_name} ${conversation.guest.last_name}`}
+                        {conversation.host_id === user?.id
+                          ? `${conversation.guest.first_name} ${conversation.guest.last_name}`
+                          : `${conversation.host.first_name} ${conversation.host.last_name}`}
                       </p>
                       <ConversationMenu
                         conversation={conversation}
@@ -258,7 +271,11 @@ const ChatPage = () => {
 
           {selectedConversation ? (
             <div className="md:col-span-2 border rounded-lg">
-              <ChatWindow conversationId={selectedConversation} />
+              <ChatWindow
+                key={selectedConversation}
+                conversationId={selectedConversation}
+                currentProfile={currentProfile}
+              />
             </div>
           ) : (
             <div className="md:col-span-2 border rounded-lg p-8 text-center text-gray-500">
