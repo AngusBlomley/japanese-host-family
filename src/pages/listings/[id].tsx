@@ -89,8 +89,8 @@ const ListingDetail = () => {
 
         // Check if listing is saved
         if (user) {
-          const savedListing = await checkIfSaved(user.id, id);
-          setIsSaved(savedListing);
+          const saved = await checkIfSaved(user.id, id);
+          setIsSaved(saved);
         }
       } catch (error) {
         toast({
@@ -104,7 +104,7 @@ const ListingDetail = () => {
     };
 
     fetchListing();
-  }, [id]);
+  }, [id, user]);
 
   const handleSave = async () => {
     try {
