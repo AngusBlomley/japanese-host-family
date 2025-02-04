@@ -62,7 +62,10 @@ const Auth = () => {
           : import.meta.env.VITE_PROD_BASE_URL;
 
         // Generate a password reset link directly
-        const redirectUrl = `${baseUrl}/reset-password`;
+        const token = await verifyRecaptcha();
+        const redirectUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(
+          token
+        )}&type=recovery&email=${encodeURIComponent(email)}`;
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,

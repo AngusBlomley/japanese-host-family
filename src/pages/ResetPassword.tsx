@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const ResetPassword = () => {
   const [newPassword, setNewPassword] = useState("");
@@ -13,30 +14,69 @@ const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
 
-  const token = searchParams.get("token");
-  const type = searchParams.get("type");
+  useEffect(() => {
+    const checkToken = async () => {
+      const type = searchParams.get("type");
+
+      // Check if this is a recovery flow
+      if (type !== "recovery") {
+        toast({
+          title: "Error",
+          description: "Invalid password reset link",
+          variant: "destructive",
+        });
+        navigate("/auth");
+        return;
+      }
+
+      try {
+        // Get the current session
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error || !session) {
+          throw new Error("Invalid or expired password reset link");
+        }
+
+        // If we have a valid session, we can proceed
+      } catch (error) {
+        console.error("Error verifying token:", error);
+        toast({
+          title: "Error",
+          description: "Invalid or expired password reset link",
+          variant: "destructive",
+        });
+        navigate("/auth");
+      }
+    };
+
+    checkToken();
+  }, [navigate, searchParams, toast]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      if (!token || type !== "recovery") {
-        throw new Error("Invalid password reset link");
+      // Get the current user
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error(
+          "Session expired. Please try resetting your password again."
+        );
       }
 
       if (newPassword !== confirmPassword) {
         throw new Error("Passwords do not match");
       }
-
-      // Set session using the recovery token
-      const { error: sessionError } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: "",
-      });
-
-      if (sessionError) throw sessionError;
 
       // Update the password
       const { error } = await supabase.auth.updateUser({

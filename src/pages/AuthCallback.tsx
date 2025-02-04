@@ -14,7 +14,6 @@ const AuthCallback = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Simplify the reset check - just check for reset=true
   const reset = searchParams.get("reset");
   const token = searchParams.get("token");
   const isReset = reset === "true" && token;
@@ -22,16 +21,14 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // If it's a password reset flow
         if (reset === "true") {
           if (!token) {
             console.error("No reset token found");
             navigate("/auth");
           }
-          return; // Just show the reset form
+          return;
         }
 
-        // Normal OAuth callback flow
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -40,7 +37,6 @@ const AuthCallback = () => {
           return;
         }
 
-        // Check if profile exists
         const { data: profile, error: fetchError } = await supabase
           .from("profiles")
           .select("profile_complete")
@@ -48,7 +44,6 @@ const AuthCallback = () => {
           .single();
 
         if (fetchError && fetchError.code === "PGRST116") {
-          // Profile doesn't exist, create it
           const { error: createError } = await supabase
             .from("profiles")
             .insert([
