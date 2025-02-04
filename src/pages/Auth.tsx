@@ -57,9 +57,12 @@ const Auth = () => {
     setLoading(true);
     try {
       if (isResetPassword) {
-        const redirectUrl = import.meta.env.PROD
-          ? "https://japanese-host-family.vercel.app/auth/callback?reset=true"
-          : `${window.location.origin}/auth/callback?reset=true`;
+        const baseUrl = import.meta.env.DEV
+          ? import.meta.env.VITE_DEV_BASE_URL
+          : import.meta.env.VITE_PROD_BASE_URL;
+
+        // Generate a password reset link directly
+        const redirectUrl = `${baseUrl}/reset-password`;
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: redirectUrl,
@@ -110,11 +113,11 @@ const Auth = () => {
         });
       }
     } catch (error: unknown) {
-      console.error("Auth error:", error);
+      const errorMessage =
+        error instanceof Error ? error.message : "An unknown error occurred";
       toast({
         title: "Error",
-        description:
-          error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

@@ -19,6 +19,7 @@ import Profile from "@/pages/Profile";
 import NewListing from "@/pages/NewListing";
 import ListingDetail from "@/pages/listings/[id]";
 import ChatPage from "@/pages/chat/index";
+import ResetPassword from "@/pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -97,6 +98,7 @@ const App = () => (
               </ProtectedRoute>
             }
           />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
