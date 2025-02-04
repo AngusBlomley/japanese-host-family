@@ -61,10 +61,7 @@ const ProfileSetup = () => {
 
   // Update localStorage whenever formData changes
   useEffect(() => {
-    localStorage.setItem(
-      PROFILE_SETUP.FORM_DATA,
-      JSON.stringify(formData)
-    );
+    localStorage.setItem(PROFILE_SETUP.FORM_DATA, JSON.stringify(formData));
   }, [formData]);
 
   // Update localStorage whenever role changes
