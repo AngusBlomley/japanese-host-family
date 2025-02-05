@@ -10,7 +10,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const ImageCarousel = ({ images }: { images: string[] }) => {
+const ImageCarousel = ({
+  images,
+  onImageError,
+}: {
+  images: string[];
+  onImageError: (index: number) => void;
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -38,6 +44,10 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
           isLoading ? "opacity-0" : "opacity-100"
         }`}
         onLoad={() => setIsLoading(false)}
+        onError={(e) => {
+          e.stopPropagation();
+          onImageError(currentIndex);
+        }}
       />
       {images.length > 1 && (
         <>
@@ -164,6 +174,56 @@ const ListingCard = ({
     }
   };
 
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this listing? This action cannot be undone."
+    );
+    if (!confirmed) return;
+
+    try {
+      // Delete from storage
+      const { data: files, error: listError } = await supabase.storage
+        .from("listings")
+        .list(listing.id);
+
+      if (listError) throw listError;
+
+      if (files.length > 0) {
+        const filePaths = files.map((file) => `${listing.id}/${file.name}`);
+        const { error: deleteError } = await supabase.storage
+          .from("listings")
+          .remove(filePaths);
+
+        if (deleteError) throw deleteError;
+      }
+
+      // Delete from database
+      const { error: deleteListingError } = await supabase
+        .from("listings")
+        .delete()
+        .eq("id", listing.id);
+
+      if (deleteListingError) throw deleteListingError;
+
+      // Notify parent component
+      if (onDelete) onDelete(listing.id);
+
+      toast({
+        title: "Success",
+        description: "Listing deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting listing:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete listing",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="relative">
       <div className="absolute top-2 right-2 flex gap-2">
@@ -177,11 +237,7 @@ const ListingCard = ({
           </Button>
         )}
         {onDelete && (
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={() => onDelete(listing.id)}
-          >
+          <Button variant="destructive" size="icon" onClick={handleDelete}>
             <Trash2 className="h-4 w-4" />
           </Button>
         )}
@@ -192,7 +248,14 @@ const ListingCard = ({
       >
         <div className="md:w-1/3 relative">
           {listing.images && listing.images.length > 0 && (
-            <ImageCarousel images={listing.images} />
+            <>
+              <ImageCarousel
+                images={listing.images.map((img) => img.split("?")[0])}
+                onImageError={(index) =>
+                  console.error(`Error loading image ${index}`)
+                }
+              />
+            </>
           )}
         </div>
         <div className="flex-1 p-6">
@@ -227,11 +290,12 @@ const ListingCard = ({
             <div className="flex items-center gap-4">
               <p className="text-lg font-semibold">
                 {formatPrice(listing.pricing.base_rate)}
-              </p>  
+              </p>
               <span className="text-sm text-gray-500">•</span>
               <p className="text-sm">
-
-                {listing.room_type === "private" ? "Private Room" : "Shared Room"}
+                {listing.room_type === "private"
+                  ? "Private Room"
+                  : "Shared Room"}
               </p>
               <span className="text-sm text-gray-500">•</span>
               <p className="text-sm">Max {listing.max_guests} guests</p>

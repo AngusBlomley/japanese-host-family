@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import type { Profile, Listing } from "@/types/user";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import ListingCard from "../listings/ListingCard";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import ListingCard from "@/components/listings/ListingCard";
 
 interface HostDashboardProps {
   profile: Profile;
@@ -22,9 +22,9 @@ interface HostDashboardProps {
 const HostDashboard = ({ profile }: HostDashboardProps) => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [listingToDelete, setListingToDelete] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [listingToDelete, setListingToDelete] = useState<string | null>(null);
 
   const fetchListings = async () => {
     const {
@@ -53,31 +53,13 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!listingToDelete) return;
+  const handleDeleteListing = (listingId: string) => {
+    setListings((prev) => prev.filter((listing) => listing.id !== listingId));
+  };
 
-    try {
-      const { error } = await supabase.rpc("delete_listing_with_saves", {
-        listing_id_param: listingToDelete,
-      });
-
-      if (error) throw error;
-
-      setListings((prev) =>
-        prev.filter((listing) => listing.id !== listingToDelete)
-      );
-      toast({
-        title: "Success",
-        description: "Listing deleted successfully",
-      });
-    } catch (error) {
-      console.error("Error deleting listing:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete listing",
-        variant: "destructive",
-      });
-    } finally {
+  const handleDelete = () => {
+    if (listingToDelete) {
+      handleDeleteListing(listingToDelete);
       setListingToDelete(null);
     }
   };
@@ -122,7 +104,7 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
             <ListingCard
               key={listing.id}
               listing={listing}
-              onDelete={(id) => setListingToDelete(id)}
+              onDelete={handleDeleteListing}
               onEdit={(id) => navigate(`/listings/edit/${id}`)}
               showSaveButton={false}
             />
@@ -134,20 +116,29 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
         open={!!listingToDelete}
         onOpenChange={() => setListingToDelete(null)}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Delete Listing</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-lg font-semibold">
+              Delete Listing
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-600">
               Are you sure you want to delete this listing? This action cannot
-              be undone. Any saved references to this listing will also be
-              removed.
+              be undone.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setListingToDelete(null)}>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setListingToDelete(null)}
+              className="hover:bg-gray-100"
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              className="bg-red-600 hover:bg-red-700"
+            >
               Delete
             </Button>
           </DialogFooter>

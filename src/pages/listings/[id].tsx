@@ -253,28 +253,43 @@ const ListingDetail = () => {
                   className="aspect-[4/3] relative cursor-pointer"
                   onClick={() => setSelectedImageIndex(0)}
                 >
-                  <img
-                    src={listing.images[0]}
-                    alt={listing.title}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
+                  {listing.images[0] && (
+                    <>
+                      <img
+                        src={listing.images[0].split("?")[0]}
+                        alt={listing.title}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) =>
+                          console.error("Error loading main image:", e)
+                        }
+                      />
+                    </>
+                  )}
                 </div>
 
                 {/* Thumbnail grid */}
                 <div className="grid grid-cols-4 gap-2">
-                  {listing.images.slice(1).map((image, index) => (
-                    <div
-                      key={index}
-                      className="aspect-[4/3] cursor-pointer"
-                      onClick={() => setSelectedImageIndex(index + 1)}
-                    >
-                      <img
-                        src={image}
-                        alt={`${listing.title} ${index + 2}`}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
-                    </div>
-                  ))}
+                  {listing.images.slice(1).map((image, index) => {
+                    return (
+                      <div
+                        key={index}
+                        className="aspect-[4/3] cursor-pointer"
+                        onClick={() => setSelectedImageIndex(index + 1)}
+                      >
+                        <img
+                          src={image.split("?")[0]}
+                          alt={`${listing.title} ${index + 2}`}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) =>
+                            console.error(
+                              `Error loading thumbnail ${index + 1}:`,
+                              e
+                            )
+                          }
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

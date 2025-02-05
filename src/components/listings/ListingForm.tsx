@@ -56,14 +56,10 @@ const listingSchema = z.object({
   available_to: z.string(),
   images: z
     .array(z.union([z.instanceof(File), z.string()]))
-    .refine((files) => files.length >= 3, "Minimum 3 images required")
-    .refine((files) => files.length <= 8, "Maximum 8 images allowed"),
-  location: z
-    .object({
-      latitude: z.number(),
-      longitude: z.number(),
+    .refine((files) => files && files.length >= 3 && files.length <= 8, {
+      message: "You must upload between 3 and 8 images",
     })
-    .optional(),
+    .default([]),
   student_requirements: z.object({
     min_age: z.number().min(16).max(100).optional(),
     max_age: z.number().min(16).max(100).optional(),
@@ -71,6 +67,14 @@ const listingSchema = z.object({
     minimum_stay_weeks: z.number().min(1).max(52).optional(),
   }),
   status: z.enum(["draft", "published", "archived"]).default("published"),
+  additional_fees: z
+    .array(
+      z.object({
+        description: z.string().min(1, "Description is required"),
+        amount: z.number().min(0, "Amount must be positive"),
+      })
+    )
+    .optional(),
 });
 
 interface ImagePreview {
@@ -118,9 +122,10 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
     defaultValues: initialData
       ? {
           ...initialData,
+          images: initialData.images || [],
           available_from: initialData.available_from.split("T")[0],
           available_to: initialData.available_to.split("T")[0],
-          images: undefined, // We'll handle existing images separately
+          additional_fees: initialData.additional_fees || [],
         }
       : {
           title: "",
@@ -149,17 +154,14 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
           meal_plan: "none" as const,
           max_guests: 1,
           status: "published" as const,
-          location: {
-            latitude: 0,
-            longitude: 0,
-          },
           student_requirements: {
             min_age: undefined,
             max_age: undefined,
             language_level: "",
             minimum_stay_weeks: undefined,
           },
-          images: undefined,
+          images: [],
+          additional_fees: [],
         },
     mode: "onChange", // Validate on change
   });
@@ -184,6 +186,7 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
             laundry: false,
           },
         },
+        additional_fees: initialData.additional_fees || [],
       };
       form.reset(formData);
     }
@@ -200,41 +203,75 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
     }
   }, [initialData]);
 
+  const validateDates = (values: z.infer<typeof listingSchema>) => {
+    const errors: Record<string, string> = {};
+
+    if (!values.available_from) {
+      errors.available_from = "Available from date is required";
+    } else if (isNaN(Date.parse(values.available_from))) {
+      errors.available_from = "Invalid date format";
+    }
+
+    if (!values.available_to) {
+      errors.available_to = "Available to date is required";
+    } else if (isNaN(Date.parse(values.available_to))) {
+      errors.available_to = "Invalid date format";
+    }
+
+    if (values.available_from && values.available_to) {
+      const fromDate = new Date(values.available_from);
+      const toDate = new Date(values.available_to);
+      if (fromDate > toDate) {
+        errors.available_to =
+          "Available to date must be after available from date";
+      }
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async (values: z.infer<typeof listingSchema>) => {
     try {
       setIsUploading(true);
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
+      if (authError) throw authError;
 
       if (!user) {
         toast({ title: "Authentication required", variant: "destructive" });
         return;
       }
 
-      // Check if profile exists
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("user_id", user.id)
-        .single();
+      // Get the list of images to delete
+      const imagesToDelete =
+        initialData?.images?.filter((url) => !values.images.includes(url)) ||
+        [];
 
-      if (!profile) {
-        toast({
-          title: "Complete Profile Required",
-          description: "Please finish setting up your profile first",
-          variant: "destructive",
-        });
-        navigate("/profile-setup");
-        return;
+      // Delete images from storage
+      if (initialData?.id && imagesToDelete.length > 0) {
+        // Extract just the file names without query parameters
+        const filePaths = imagesToDelete
+          .map((url) => {
+            const fileName = url.split("/").pop()?.split("?")[0];
+            return `${initialData.id}/${fileName}`;
+          })
+          .filter(Boolean); // Remove any undefined values
+
+        const { error: deleteError } = await supabase.storage
+          .from("listings")
+          .remove(filePaths);
+
+        if (deleteError) throw deleteError;
       }
 
-      // Handle image uploads
+      // Handle new image uploads
       const uploadedImageUrls = [
-        ...(initialData?.images?.filter((img) => typeof img === "string") ||
-          []), // Keep existing URLs
+        ...(values.images.filter((img) => typeof img === "string") || []),
         ...(await handleImageUpload(
-          values.images?.filter((img) => img instanceof File) || []
+          values.images?.filter((img) => img instanceof File) || [],
+          initialData?.id || ""
         )),
       ];
 
@@ -243,6 +280,7 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
         host_id: user.id,
         images: uploadedImageUrls,
         status: values.status || "published",
+        additional_fees: values.additional_fees || [],
       };
 
       if (initialData) {
@@ -271,9 +309,9 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
     } catch (error) {
       console.error("Submission error:", error);
       toast({
-        title: "Oops! Something went wrong 😞",
+        title: "Submission Failed",
         description:
-          "We couldn't save your listing. Please check the form for errors.",
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
     } finally {
@@ -314,56 +352,108 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
       return;
     }
 
+    const currentImages = form.getValues("images") || [];
+    form.setValue(
+      "images",
+      [...currentImages, ...newImages.map((img) => img.file)],
+      { shouldValidate: true }
+    );
+
     setImages((prev) => [...prev, ...newImages]);
   };
 
-  const removeImage = (index: number) => {
-    setImages((prev) => {
-      const newImages = [...prev];
-      URL.revokeObjectURL(newImages[index].url);
-      newImages.splice(index, 1);
-      return newImages;
-    });
+  const removeImage = async (index: number) => {
+    try {
+      const imageToRemove = images[index];
+      console.log("Image to remove:", imageToRemove);
+
+      // If it's a stored image (has a URL but no file), delete from storage
+      if (
+        typeof imageToRemove.url === "string" &&
+        !(imageToRemove.file instanceof File)
+      ) {
+        const fileName = imageToRemove.url.split("/").pop();
+        console.log("File name to remove:", fileName);
+
+        if (fileName && initialData?.id) {
+          const filePath = `${initialData.id}/${fileName}`;
+          console.log("Full file path to remove:", filePath);
+
+          // Delete from Supabase storage
+          const { data, error } = await supabase.storage
+            .from("listings")
+            .remove([filePath]);
+
+          console.log("Storage removal result:", { data, error });
+
+          if (error) throw error;
+
+          // Update the listing in the database to remove the image URL
+          const updatedImages =
+            form.getValues("images")?.filter((_, i) => i !== index) || [];
+          console.log("Updated images array:", updatedImages);
+
+          const { error: updateError } = await supabase
+            .from("listings")
+            .update({ images: updatedImages })
+            .eq("id", initialData.id);
+
+          console.log("Database update result:", { updateError });
+
+          if (updateError) throw updateError;
+        }
+      }
+
+      // Update UI and form state
+      setImages((prev) => {
+        const newImages = [...prev];
+        URL.revokeObjectURL(newImages[index].url);
+        newImages.splice(index, 1);
+
+        const currentImages = form.getValues("images") || [];
+        currentImages.splice(index, 1);
+        form.setValue("images", currentImages, { shouldValidate: true });
+
+        return newImages;
+      });
+    } catch (error) {
+      console.error("Error removing image:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove image",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleImageUpload = async (files: File[]) => {
+  const handleImageUpload = async (files: File[], listingId: string) => {
     try {
-      setUploadProgress({
-        total: files.length,
-        current: 0,
-        status: "Uploading images...",
-      });
       const uploadedUrls = [];
 
       for (const file of files) {
         const fileName = `${Date.now()}-${file.name}`;
+        const filePath = `${listingId}/${fileName}`;
+
+        // Upload the file
         const { error } = await supabase.storage
-          .from("listing-images")
-          .upload(fileName, file);
+          .from("listings")
+          .upload(filePath, file);
 
         if (error) throw error;
 
+        // Get the direct public URL without transformations
         const {
           data: { publicUrl },
-        } = supabase.storage.from("listing-images").getPublicUrl(fileName);
+        } = supabase.storage.from("listings").getPublicUrl(filePath);
 
+        // Add the URL without any additional query parameters
         uploadedUrls.push(publicUrl);
-        setUploadProgress((prev) => ({
-          ...prev,
-          current: prev.current + 1,
-          status: `Uploaded ${prev.current + 1}/${prev.total} images`,
-        }));
       }
 
       return uploadedUrls;
     } catch (error) {
       console.error("Image upload error:", error);
-      toast({
-        title: "Image Upload Failed",
-        description: "Could not upload one or more images",
-        variant: "destructive",
-      });
-      return [];
+      throw error;
     }
   };
 
@@ -373,9 +463,19 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
     </span>
   );
 
+  useEffect(() => {
+    const subscription = form.watch(() => {});
+    return () => subscription.unsubscribe();
+  }, [form.watch]);
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit((values) => {
+          handleSubmit(values);
+        })}
+        className="space-y-8"
+      >
         <FormField
           control={form.control}
           name="title"
@@ -634,12 +734,22 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
           <div className="space-y-4">
             <FormLabel>Included in Price</FormLabel>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {["utilities", "wifi", "laundry"].map((item) => (
+              {[
+                "breakfast",
+                "lunch",
+                "dinner",
+                "utilities",
+                "wifi",
+                "laundry",
+              ].map((item) => (
                 <FormField
                   key={item}
                   control={form.control}
                   name={
                     `pricing.includes.${item}` as
+                      | "pricing.includes.breakfast"
+                      | "pricing.includes.lunch"
+                      | "pricing.includes.dinner"
                       | "pricing.includes.utilities"
                       | "pricing.includes.wifi"
                       | "pricing.includes.laundry"
@@ -667,21 +777,21 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
 
         <div>
           <Label>Property Images</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {images.map((image, index) => (
               <div key={index} className="relative group">
                 <img
                   src={image.url}
-                  alt={`Preview ${index + 1}`}
+                  alt={`Listing image ${index + 1}`}
                   className="w-full h-32 object-cover rounded-lg"
                 />
                 <button
+                  title="Remove image"
                   type="button"
                   onClick={() => removeImage(index)}
-                  className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  aria-label={`Remove image ${index + 1}`}
+                  className="absolute top-1 right-1 p-1 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-4 w-4 text-white" />
                 </button>
               </div>
             ))}
@@ -748,13 +858,13 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
                   <RequiredLabel label="Available From" />
                 </FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input
+                    type="date"
+                    {...field}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
                 </FormControl>
-                {form.formState.errors.available_from && (
-                  <FormMessage className="text-red-500 text-sm">
-                    {form.formState.errors.available_from.message}
-                  </FormMessage>
-                )}
+                <FormMessage className="text-red-500 text-sm" />
               </FormItem>
             )}
           />
@@ -768,13 +878,16 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
                   <RequiredLabel label="Available To" />
                 </FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input
+                    type="date"
+                    {...field}
+                    min={
+                      form.watch("available_from") ||
+                      new Date().toISOString().split("T")[0]
+                    }
+                  />
                 </FormControl>
-                {form.formState.errors.available_to && (
-                  <FormMessage className="text-red-500 text-sm">
-                    {form.formState.errors.available_to.message}
-                  </FormMessage>
-                )}
+                <FormMessage className="text-red-500 text-sm" />
               </FormItem>
             )}
           />
@@ -879,7 +992,7 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
         />
 
         <div className="space-y-4 border rounded-lg p-6">
-          <h3 className="text-lg font-semibold">Student Requirements</h3>
+          <h3 className="text-lg font-semibold">Guest Requirements</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
@@ -1011,6 +1124,104 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
           </div>
         </div>
 
+        <div className="space-y-4 border rounded-lg p-6">
+          <h3 className="text-lg font-semibold">Additional Fees</h3>
+          <div className="space-y-4">
+            {form.watch("additional_fees")?.map((fee, index) => (
+              <div
+                key={index}
+                className="grid grid-cols-[1fr_auto] gap-4 items-start"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name={`additional_fees.${index}.description`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="e.g., Cleaning fee" />
+                        </FormControl>
+                        {form.formState.errors.additional_fees?.[index]
+                          ?.description && (
+                          <FormMessage className="text-red-500 text-sm">
+                            {
+                              form.formState.errors.additional_fees[index]
+                                ?.description?.message
+                            }
+                          </FormMessage>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`additional_fees.${index}.amount`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                              ¥
+                            </span>
+                            <Input
+                              type="number"
+                              {...field}
+                              className="pl-8"
+                              onChange={(e) =>
+                                field.onChange(Number(e.target.value))
+                              }
+                              placeholder="0"
+                            />
+                          </div>
+                        </FormControl>
+                        {form.formState.errors.additional_fees?.[index]
+                          ?.amount && (
+                          <FormMessage className="text-red-500 text-sm">
+                            {
+                              form.formState.errors.additional_fees[index]
+                                ?.amount?.message
+                            }
+                          </FormMessage>
+                        )}
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 mt-7"
+                  onClick={() => {
+                    const currentFees = form.getValues("additional_fees") || [];
+                    form.setValue(
+                      "additional_fees",
+                      currentFees.filter((_, i) => i !== index)
+                    );
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              form.setValue("additional_fees", [
+                ...(form.getValues("additional_fees") || []),
+                { description: "", amount: 0 },
+              ]);
+            }}
+          >
+            Add Additional Fee
+          </Button>
+        </div>
+
         {isUploading && (
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
@@ -1032,6 +1243,19 @@ const ListingForm = ({ initialData }: ListingFormProps) => {
                 }}
               />
             </div>
+          </div>
+        )}
+
+        {Object.keys(form.formState.errors).length > 0 && (
+          <div className="text-red-500 text-sm">
+            Please fix the following errors:
+            <ul>
+              {Object.entries(form.formState.errors).map(([field, error]) => (
+                <li key={field}>
+                  {field}: {error.message}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

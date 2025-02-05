@@ -34,7 +34,13 @@ interface SearchFilters {
   keyword: string;
 }
 
-const ImageCarousel = ({ images }: { images: string[] }) => {
+const ImageCarousel = ({
+  images,
+  onImageError,
+}: {
+  images: string[];
+  onImageError: (index: number) => void;
+}) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -62,6 +68,7 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
           isLoading ? "opacity-0" : "opacity-100"
         }`}
         onLoad={() => setIsLoading(false)}
+        onError={(e) => onImageError(currentIndex)}
       />
       {images.length > 1 && (
         <>
@@ -184,7 +191,14 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
     >
       <div className="md:w-1/3 relative">
         {listing.images && listing.images.length > 0 && (
-          <ImageCarousel images={listing.images} />
+          <>
+            <ImageCarousel
+              images={listing.images.map((img) => img.split("?")[0])}
+              onImageError={(index) =>
+                console.error(`Error loading image ${index}`)
+              }
+            />
+          </>
         )}
       </div>
       <div className="flex-1 p-6">

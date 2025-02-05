@@ -70,10 +70,6 @@ export interface Listing {
   created_at: string;
   updated_at: string;
   status: "draft" | "published" | "archived";
-  location: {
-    latitude: number;
-    longitude: number;
-  };
   meal_plan: "none" | "breakfast_only" | "half_board" | "full_board";
   student_requirements?: {
     min_age?: number;
@@ -92,6 +88,10 @@ export interface Listing {
     nationality: string;
     languages: string[];
   };
+  additional_fees: {
+    description: string;
+    amount: number;
+  }[];
 }
 
 // Type guards to check role-specific fields
