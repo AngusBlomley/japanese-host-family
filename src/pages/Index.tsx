@@ -339,7 +339,6 @@ const Index = () => {
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const { updateLanguage } = useLanguage();
 
   const [filters, setFilters] = useState<SearchFilters>({
     location: "",
@@ -482,7 +481,12 @@ const Index = () => {
               <p className="text-xl text-gray-600">
                 Connect with Japanese families for an authentic experience
               </p>
-              <Button onClick={() => navigate("/auth")} size="lg">
+              <Button
+                onClick={() =>
+                  navigate("/auth", { state: { showSignUp: true } })
+                }
+                size="lg"
+              >
                 Get Started
               </Button>
             </div>
