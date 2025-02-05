@@ -5,6 +5,7 @@ import HostDashboard from "@/components/dashboard/HostDashboard";
 import GuestDashboard from "@/components/dashboard/GuestDashboard";
 import type { Profile } from "@/types/user";
 import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -37,7 +38,12 @@ const Dashboard = () => {
     checkProfile();
   }, [navigate]);
 
-  if (!profile) return <div>Loading...</div>;
+  if (!profile)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
 
   return (
     <>

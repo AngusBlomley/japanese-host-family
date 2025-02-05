@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { formatPrice } from "@/lib/pricing";
 import { Badge } from "@/components/ui/badge";
-import { Star, ArrowLeft, MessageCircle } from "lucide-react";
+import { Star, ArrowLeft, MessageCircle, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import ImageLightbox from "@/components/ui/image-lightbox";
 import {
@@ -222,7 +222,11 @@ const ListingDetail = () => {
   };
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (!listing) {

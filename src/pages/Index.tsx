@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import Header from "@/components/layout/Header";
 import type { Listing } from "@/types/user";
@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
 import { useLanguage } from "@/hooks/useLanguage";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface SearchFilters {
   location: string;
@@ -35,23 +36,32 @@ interface SearchFilters {
 
 const ImageCarousel = ({ images }: { images: string[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentIndex((prev) => (prev + 1) % images.length);
+    setIsLoading(true);
   };
 
   const previousImage = (e: React.MouseEvent) => {
     e.stopPropagation();
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+    setIsLoading(true);
   };
 
   return (
     <div className="relative w-full h-48 md:h-full">
+      {isLoading && (
+        <Skeleton className="absolute inset-0 rounded-t-lg md:rounded-l-lg md:rounded-t-none" />
+      )}
       <img
         src={images[currentIndex]}
         alt={`Image ${currentIndex + 1}`}
-        className="w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none"
+        className={`w-full h-full object-cover rounded-t-lg md:rounded-l-lg md:rounded-t-none transition-opacity duration-300 ${
+          isLoading ? "opacity-0" : "opacity-100"
+        }`}
+        onLoad={() => setIsLoading(false)}
       />
       {images.length > 1 && (
         <>
@@ -455,16 +465,9 @@ const Index = () => {
 
   const filteredListings = filterListings(listings);
 
-  // When you need to change language:
-  const handleLanguageChange = (newLanguage: string) => {
-    updateLanguage(newLanguage).catch((error) => {
-      console.error("Error changing language:", error);
-    });
-  };
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
+  <div className="flex items-center justify-center h-screen">
+    <Loader2 className="h-8 w-8 animate-spin" />
+  </div>;
 
   return (
     <>

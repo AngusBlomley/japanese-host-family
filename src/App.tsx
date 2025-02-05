@@ -23,6 +23,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useEffect } from "react";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -30,7 +31,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   if (!user) {
