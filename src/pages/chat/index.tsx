@@ -205,13 +205,13 @@ const ChatPage = () => {
                     >
                       <AvatarImage
                         src={
-                          conversation.host_id === user?.id
+                          conversation.host_id === currentProfile?.id
                             ? conversation.guest.avatar_url
                             : conversation.host.avatar_url
                         }
                       />
                       <AvatarFallback>
-                        {conversation.host_id === user?.id
+                        {conversation.host_id === currentProfile?.id
                           ? conversation.guest.first_name[0]
                           : conversation.host.first_name[0]}
                       </AvatarFallback>

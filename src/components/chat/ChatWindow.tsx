@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Send } from "lucide-react";
 import { Message } from "../../types/user";
-import { ScrollArea } from "@/components/ui/scroll-area"; // Note: Only ScrollArea is imported
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatWindowProps {
   conversationId: string;
@@ -344,7 +344,7 @@ const ChatWindow = ({ conversationId, currentProfile }: ChatWindowProps) => {
         ))}
         <div ref={messagesEndRef} />
       </ScrollArea>
-      <form onSubmit={sendMessage} className="p-2 md:p-4 border-t">
+      <form onSubmit={sendMessage} className="mt-auto p-2 md:p-4 border-t">
         <div className="flex gap-2">
           <Input
             value={newMessage}

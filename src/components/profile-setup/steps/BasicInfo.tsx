@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -9,199 +8,252 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useFormStorage } from "@/hooks/useFormStorage";
-import { Profile } from "@/types/user";
-import { useToast } from "@/components/ui/use-toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useFormContext } from "react-hook-form";
+import { Profile } from "@/validations/profile";
+import { languages, nationalities } from "../constants";
 
 interface BasicInfoProps {
-  formData: Profile;
-  setFormData: (data: Profile) => void;
   onNext: () => void;
   onBack: () => void;
 }
 
-const languages = [
-  "Japanese",
-  "English",
-  "Chinese",
-  "Korean",
-  "Spanish",
-  "French",
-  "German",
-];
+const BasicInfo = ({ onNext, onBack }: BasicInfoProps) => {
+  const form = useFormContext<Profile>();
+  const { handleSubmit } = form;
 
-const nationalities = [
-  "Japanese",
-  "American",
-  "Chinese",
-  "Korean",
-  "British",
-  "Australian",
-  "Canadian",
-  // Add more as needed
-];
+  const topLanguages = languages.slice(0, 5);
+  const otherLanguages = languages.slice(5);
 
-const BasicInfo = ({
-  formData,
-  setFormData,
-  onNext,
-  onBack,
-}: BasicInfoProps) => {
-  const updateForm = useFormStorage(setFormData);
-  const { toast } = useToast();
-
-  const validateBasicInfo = () => {
-    const errors: string[] = [];
-
-    if (!formData.first_name?.trim()) {
-      errors.push("First name is required");
-    }
-    if (!formData.last_name?.trim()) {
-      errors.push("Last name is required");
-    }
-    if (!formData.phone_number?.trim()) {
-      errors.push("Phone number is required");
-    }
-    if (!formData.date_of_birth) {
-      errors.push("Date of birth is required");
-    }
-    if (!formData.nationality?.trim()) {
-      errors.push("Nationality is required");
-    }
-    if (!formData.languages?.length) {
-      errors.push("At least one language is required");
-    }
-    if (!formData.bio?.trim()) {
-      errors.push("Bio is required");
-    }
-
-    return errors;
-  };
-
-  const handleNext = () => {
-    const errors = validateBasicInfo();
-    if (errors.length > 0) {
-      toast({
-        title: "Please fix the following errors:",
-        description: (
-          <ul className="list-disc pl-4">
-            {errors.map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        ),
-        variant: "destructive",
-      });
-      return;
-    }
-    onNext();
+  const isValid = () => {
+    const valid = !!(
+      form.getValues().first_name &&
+      form.getValues().last_name &&
+      form.getValues().phone_number &&
+      form.getValues().date_of_birth &&
+      form.getValues().nationality
+    );
+    return valid;
   };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <Form {...form}>
+      <form onSubmit={handleSubmit(onNext)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <FormField
+              control={form.control}
+              name="first_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>First Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      className="dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div>
+            <FormField
+              control={form.control}
+              name="last_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Last Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
+
         <div>
-          <Label htmlFor="firstName">First Name</Label>
-          <Input
-            id="firstName"
-            value={formData.first_name}
-            onChange={(e) => updateForm("first_name", e.target.value)}
-            required
+          <FormField
+            control={form.control}
+            name="phone_number"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input {...field} type="tel" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
+
         <div>
-          <Label htmlFor="lastName">Last Name</Label>
-          <Input
-            id="lastName"
-            value={formData.last_name}
-            onChange={(e) => updateForm("last_name", e.target.value)}
-            required
+          <FormField
+            control={form.control}
+            name="date_of_birth"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date of Birth</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
           />
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="phoneNumber">Phone Number</Label>
-        <Input
-          id="phoneNumber"
-          type="tel"
-          value={formData.phone_number}
-          onChange={(e) => updateForm("phone_number", e.target.value)}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="dateOfBirth">Date of Birth</Label>
-        <Input
-          id="dateOfBirth"
-          type="date"
-          value={formData.date_of_birth}
-          onChange={(e) => updateForm("date_of_birth", e.target.value)}
-          required
-        />
-      </div>
-
-      <div>
-        <Label htmlFor="nationality">Nationality</Label>
-        <Select
-          value={formData.nationality}
-          onValueChange={(value) => updateForm("nationality", value)}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select your nationality" />
-          </SelectTrigger>
-          <SelectContent>
-            {nationalities.map((nationality) => (
-              <SelectItem key={nationality} value={nationality}>
-                {nationality}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div>
-        <Label>Languages Spoken</Label>
-        <div className="flex flex-wrap gap-2 mt-2">
-          {languages.map((language) => (
-            <Button
-              key={language}
-              type="button"
-              variant={
-                formData.languages.includes(language) ? "default" : "outline"
-              }
-              onClick={() => {
-                const newLanguages = formData.languages.includes(language)
-                  ? formData.languages.filter((l: string) => l !== language)
-                  : [...formData.languages, language];
-                updateForm("languages", newLanguages);
-              }}
-            >
-              {language}
-            </Button>
-          ))}
+        <div>
+          <FormField
+            control={form.control}
+            name="nationality"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nationality</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                  }}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select nationality" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {nationalities.map((nationality) => (
+                      <SelectItem key={nationality} value={nationality}>
+                        {nationality}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="bio">Bio</Label>
-        <Textarea
-          id="bio"
-          value={formData.bio}
-          onChange={(e) => updateForm("bio", e.target.value)}
-          placeholder="Tell us about yourself..."
-          className="h-32"
+        <FormField
+          control={form.control}
+          name="languages"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Languages Spoken</FormLabel>
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  {topLanguages.map((language) => (
+                    <Button
+                      key={language}
+                      type="button"
+                      variant={
+                        field.value?.includes(language) ? "default" : "outline"
+                      }
+                      className="dark:border-gray-600 dark:text-white"
+                      onClick={() => {
+                        const newLanguages = field.value?.includes(language)
+                          ? field.value.filter((l: string) => l !== language)
+                          : [...(field.value || []), language];
+                        field.onChange(newLanguages);
+                      }}
+                    >
+                      {language}
+                    </Button>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <Select
+                    value=""
+                    onValueChange={(value) => {
+                      if (value && !field.value?.includes(value)) {
+                        field.onChange([...(field.value || []), value]);
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-[200px]">
+                      <SelectValue placeholder="Select other languages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {otherLanguages.map((language) => (
+                        <SelectItem key={language} value={language}>
+                          {language}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+                  <div className="flex flex-wrap gap-2">
+                    {field.value
+                      ?.filter((l) => !topLanguages.includes(l))
+                      .map((language) => (
+                        <Button
+                          key={language}
+                          type="button"
+                          variant="outline"
+                          className="dark:border-gray-600 dark:text-white"
+                          onClick={() => {
+                            field.onChange(
+                              field.value.filter((l) => l !== language)
+                            );
+                          }}
+                        >
+                          {language} ×
+                        </Button>
+                      ))}
+                  </div>
+                </div>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
         />
-      </div>
 
-      <div className="flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Back
-        </Button>
-        <Button onClick={handleNext}>Continue</Button>
-      </div>
-    </div>
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Bio</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  className="h-32 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  placeholder="Tell us about yourself..."
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-between">
+          <Button type="button" variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button
+            onClick={() => {
+              onNext();
+            }}
+            disabled={!isValid()}
+          >
+            Continue
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 

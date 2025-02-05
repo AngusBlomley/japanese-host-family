@@ -25,29 +25,10 @@ export type Database = {
           profile_complete: boolean;
           created_at: string;
           updated_at: string;
-          // Host fields
-          address: string | null;
-          city: string | null;
-          prefecture: string | null;
-          postal_code: string | null;
-          accommodation_type: "house" | "apartment" | null;
-          room_type: "private" | "shared" | null;
-          max_guests: number | null;
-          amenities: string[] | null;
-          house_rules: string[] | null;
-          available_from: string | null;
-          available_to: string | null;
-          price_per_night: number | null;
           license_number: string | null;
           license_expiry: string | null;
-          // Guest fields
-          study_purpose: string | null;
-          planned_duration: "1-3" | "3-6" | "6-12" | "12+" | null;
+          stay_purpose: string | null;
           dietary_restrictions: string[] | null;
-          preferred_location: string[] | null;
-          start_date: string | null;
-          budget_min: number | null;
-          budget_max: number | null;
         };
         Insert: {
           id?: string;
@@ -64,29 +45,10 @@ export type Database = {
           profile_complete?: boolean;
           created_at?: string;
           updated_at?: string;
-          // Host fields
-          address?: string | null;
-          city?: string | null;
-          prefecture?: string | null;
-          postal_code?: string | null;
-          accommodation_type?: "house" | "apartment" | null;
-          room_type?: "private" | "shared" | null;
-          max_guests?: number | null;
-          amenities?: string[] | null;
-          house_rules?: string[] | null;
-          available_from?: string | null;
-          available_to?: string | null;
-          price_per_night?: number | null;
           license_number?: string | null;
           license_expiry?: string | null;
-          // Guest fields
-          study_purpose?: string | null;
-          planned_duration?: "1-3" | "3-6" | "6-12" | "12+" | null;
+          stay_purpose?: string | null;
           dietary_restrictions?: string[] | null;
-          preferred_location?: string[] | null;
-          start_date?: string | null;
-          budget_min?: number | null;
-          budget_max?: number | null;
         };
         Update: {
           id?: string;
@@ -103,29 +65,10 @@ export type Database = {
           profile_complete?: boolean;
           created_at?: string;
           updated_at?: string;
-          // Host fields
-          address?: string | null;
-          city?: string | null;
-          prefecture?: string | null;
-          postal_code?: string | null;
-          accommodation_type?: "house" | "apartment" | null;
-          room_type?: "private" | "shared" | null;
-          max_guests?: number | null;
-          amenities?: string[] | null;
-          house_rules?: string[] | null;
-          available_from?: string | null;
-          available_to?: string | null;
-          price_per_night?: number | null;
           license_number?: string | null;
           license_expiry?: string | null;
-          // Guest fields
-          study_purpose?: string | null;
-          planned_duration?: "1-3" | "3-6" | "6-12" | "12+" | null;
+          stay_purpose?: string | null;
           dietary_restrictions?: string[] | null;
-          preferred_location?: string[] | null;
-          start_date?: string | null;
-          budget_min?: number | null;
-          budget_max?: number | null;
         };
       };
     };
@@ -240,3 +183,29 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
   ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
   : never;
+
+
+  // needs moved into types above
+export type Profiles = {
+  id: string;
+  user_id: string;
+  role: "host" | "guest";
+  first_name: string;
+  last_name: string;
+  phone_number: string | null;
+  date_of_birth: string | null;
+  nationality: string | null;
+  languages: string[];
+  bio: string | null;
+  avatar_url: string | null;
+  profile_complete: boolean;
+  created_at: string;
+  updated_at: string;
+  license_number: string | null;
+  license_expiry: string | null;
+  stay_purpose: string | null;
+  dietary_restrictions: string[];
+  rating: number;
+  total_ratings: number;
+  language: string;
+};

@@ -8,53 +8,31 @@ export interface Profile {
   // Common fields
   first_name: string;
   last_name: string;
-  phone_number: string;
-  date_of_birth: string;
-  nationality: string;
+  phone_number: string | null;
+  date_of_birth: string | null;
+  nationality: string | null;
   languages: string[];
-  bio: string;
+  bio: string | null;
   avatar_url: string | null;
   profile_complete: boolean;
   created_at: string;
   updated_at: string;
 
-  // Host-specific fields (nullable)
-  address?: string | null;
-  city?: string | null;
+  // Host-specific fields (nullable for guests)
   prefecture?: string | null;
-  postal_code?: string | null;
-  accommodation_type?: "house" | "apartment" | null;
-  room_type?: "private" | "shared" | null;
-  max_guests?: number | null;
-  amenities?: string[] | null;
   house_rules?: string[] | null;
-  available_from?: string | null;
-  available_to?: string | null;
-  pricing?: {
-    type: "weekly" | "monthly";
-    base_rate: number;
-    includes: {
-      breakfast: boolean;
-      lunch: boolean;
-      dinner: boolean;
-      utilities: boolean;
-      wifi: boolean;
-      laundry: boolean;
-    };
-  } | null;
   meal_plan?: "none" | "breakfast_only" | "half_board" | "full_board" | null;
   license_number?: string | null;
   license_expiry?: string | null;
 
-  // Guest-specific fields (nullable)
-  study_purpose?: string | null;
-  planned_duration?: "1-3" | "3-6" | "6-12" | "12+" | null;
+  // Guest-specific fields (nullable for hosts)
+  stay_purpose?: string | null;
   dietary_restrictions?: string[] | null;
-  preferred_location?: string[] | null;
-  start_date?: string | null;
-  budget_period?: "weekly" | "monthly" | null;
-  budget_min?: number | null;
-  budget_max?: number | null;
+
+  // Common optional fields
+  rating?: number | null;
+  total_ratings?: number;
+  language?: string | null;
 }
 
 export interface Listing {

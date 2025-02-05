@@ -1,12 +1,12 @@
-import { UserRole } from "@/types/user";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Home, User } from "lucide-react";
+import { Profile } from "../../../types/user";
 
 interface RoleSelectionProps {
-  role: UserRole | null;
-  setRole: (role: UserRole) => void;
-  onNext: () => void;
+  role: Profile["role"] | null;
+  setRole: (role: Profile["role"]) => void;
+  onNext: (role: Profile["role"]) => void;
 }
 
 const RoleSelection = ({ role, setRole, onNext }: RoleSelectionProps) => {
@@ -28,7 +28,7 @@ const RoleSelection = ({ role, setRole, onNext }: RoleSelectionProps) => {
             <div>
               <h3 className="text-lg font-semibold">Host Family</h3>
               <p className="text-sm text-gray-600">
-                I want to host international students
+                I want to host guests from abroad
               </p>
             </div>
           </div>
@@ -43,7 +43,7 @@ const RoleSelection = ({ role, setRole, onNext }: RoleSelectionProps) => {
           <div className="text-center space-y-4">
             <User className="w-12 h-12 mx-auto text-primary" />
             <div>
-              <h3 className="text-lg font-semibold">Student</h3>
+              <h3 className="text-lg font-semibold">Guest</h3>
               <p className="text-sm text-gray-600">
                 I'm looking for a host family
               </p>
@@ -53,7 +53,7 @@ const RoleSelection = ({ role, setRole, onNext }: RoleSelectionProps) => {
       </div>
 
       <div className="flex justify-end">
-        <Button onClick={onNext} disabled={!role}>
+        <Button onClick={() => onNext(role)} disabled={!role}>
           Continue
         </Button>
       </div>

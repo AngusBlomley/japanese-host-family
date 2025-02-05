@@ -221,9 +221,10 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
           </p>
 
           <div className="flex items-center gap-4">
-            <p className="text-lg font-semibold">
-              {formatPrice(listing.pricing.base_rate, listing.pricing.type)}
-            </p>
+            <span className="text-lg font-semibold">
+              {formatPrice(listing.pricing.base_rate)}/
+              {listing.pricing.type === "weekly" ? "week" : "month"}
+            </span>
             <span className="text-sm text-gray-500">•</span>
             <p className="text-sm">
               {listing.room_type === "private" ? "Private Room" : "Shared Room"}

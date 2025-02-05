@@ -4,28 +4,38 @@ import Header from "@/components/layout/Header";
 import HostDashboard from "@/components/dashboard/HostDashboard";
 import GuestDashboard from "@/components/dashboard/GuestDashboard";
 import type { Profile } from "@/types/user";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const checkProfile = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        navigate("/auth");
+        return;
+      }
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("user_id", user.id)
         .single();
 
-      if (data) setProfile(data);
+      if (error || !data) {
+        console.error("Profile fetch error:", error);
+        navigate("/profile-setup");
+      } else {
+        setProfile(data);
+      }
     };
 
-    fetchProfile();
-  }, []);
+    checkProfile();
+  }, [navigate]);
 
   if (!profile) return <div>Loading...</div>;
 

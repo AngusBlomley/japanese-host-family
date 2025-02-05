@@ -378,7 +378,8 @@ const ListingDetail = () => {
               <div className="border-t pt-6">
                 <h2 className="text-xl font-semibold mb-4">Pricing</h2>
                 <p className="text-2xl font-bold">
-                  {formatPrice(listing.pricing.base_rate, listing.pricing.type)}
+                  {formatPrice(listing.pricing.base_rate)}/
+                  {listing.pricing.type === "weekly" ? "week" : "month"}
                 </p>
                 <div className="mt-2 space-y-2">
                   {Object.entries(listing.pricing.includes)

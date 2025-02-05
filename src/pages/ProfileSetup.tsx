@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/components/ui/use-toast";
-import { UserRole } from "@/types/user";
 import RoleSelection from "@/components/profile-setup/steps/RoleSelection";
 import BasicInfo from "@/components/profile-setup/steps/BasicInfo";
 import HostDetails from "@/components/profile-setup/steps/HostDetails";
@@ -12,224 +11,221 @@ import ReviewSubmit from "@/components/profile-setup/steps/ReviewSubmit";
 import { PROFILE_SETUP } from "@/constants/storage";
 import type { Profile } from "@/types/user";
 import Header from "@/components/layout/Header";
+import { useForm, FormProvider } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { profileSchema } from "@/validations/profile";
 
 const steps = {
-  host: ["Role", "Basic Info", "Host Details", "Review & Submit"],
-  guest: ["Role", "Basic Info", "Guest Details", "Review & Submit"],
+  host: ["Role", "Basic Info", "Host Details", "Review"],
+  guest: ["Role", "Basic Info", "Guest Details", "Review"],
 };
 
 const ProfileSetup = () => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [role, setRole] = useState<UserRole | null>(() => {
-    const saved = localStorage.getItem(PROFILE_SETUP.ROLE);
-    return saved ? JSON.parse(saved) : null;
+  const [role, setRole] = useState<Profile["role"] | null>(() => {
+    try {
+      const storedRole = localStorage.getItem(PROFILE_SETUP.ROLE);
+      return storedRole ? JSON.parse(storedRole) : null;
+    } catch (error) {
+      console.error("Error parsing stored role:", error);
+      return null;
+    }
   });
-
-  const [formData, setFormData] = useState<Profile>(() => {
-    const saved = localStorage.getItem(PROFILE_SETUP.FORM_DATA);
-    return saved
-      ? JSON.parse(saved)
-      : {
-          first_name: "",
-          last_name: "",
-          phone_number: "",
-          date_of_birth: "",
-          nationality: "",
-          languages: [],
-          bio: "",
-          dietary_restrictions: [],
-          preferred_location: [],
-          study_purpose: "",
-          planned_duration: "1-3",
-          start_date: "",
-          budget_min: 0,
-          budget_max: 0,
-          amenities: [],
-          house_rules: [],
-          address: "",
-          city: "",
-          prefecture: "",
-          postalCode: "",
-          license_number: "",
-          license_expiry: "",
-          accommodation_type: "house",
-          room_type: "private",
-          max_guests: 1,
-          price_per_night: 0,
-        };
-  });
-
-  // Update localStorage whenever formData changes
-  useEffect(() => {
-    localStorage.setItem(PROFILE_SETUP.FORM_DATA, JSON.stringify(formData));
-  }, [formData]);
-
-  // Update localStorage whenever role changes
-  useEffect(() => {
-    localStorage.setItem(PROFILE_SETUP.ROLE, JSON.stringify(role));
-  }, [role]);
-
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const totalSteps = role ? steps[role].length : 1;
+  const formMethods = useForm<Profile>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      role: undefined,
+      first_name: "",
+      last_name: "",
+      phone_number: "",
+      date_of_birth: "",
+      nationality: "",
+      languages: [],
+      bio: "",
+      avatar_url: null,
+      // Host defaults
+      license_number: "",
+      license_expiry: "",
+      // Guest defaults
+      dietary_restrictions: [],
+      stay_purpose: "",
+    },
+  });
+
+  useEffect(() => {
+    if (role) {
+      formMethods.setValue("role", role);
+    }
+  }, [role, formMethods]);
+
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === PROFILE_SETUP.FORM_DATA && e.newValue) {
+        formMethods.reset(JSON.parse(e.newValue));
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [formMethods]);
+
+  const totalSteps = role ? steps[role].length : steps.host.length;
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
-  const handleNext = () => {
-    setCurrentStep((prev) => Math.min(prev + 1, totalSteps - 1));
+  const handleNext = async () => {
+    console.log("Current step:", currentStep, "Role:", role);
+
+    if (currentStep === 0) {
+      console.log("Handling role selection step");
+      if (!role) {
+        console.log("No role selected, showing error");
+        toast({ title: "Please select a role" });
+        return;
+      }
+      console.log("Proceeding to step 1");
+      setCurrentStep(1);
+      return;
+    }
+
+    // Validate only current step's fields
+    let fieldsToValidate: (keyof Profile)[] = [];
+    if (currentStep === 1) {
+      console.log("Validating basic info step");
+      fieldsToValidate = [
+        "first_name",
+        "last_name",
+        "phone_number",
+        "date_of_birth",
+        "nationality",
+        "languages",
+      ];
+    } else if (currentStep === 2) {
+      console.log("Validating role-specific step for", role);
+      fieldsToValidate =
+        role === "host"
+          ? ["license_number"]
+          : ["stay_purpose", "dietary_restrictions"];
+    }
+
+    console.log("Fields to validate:", fieldsToValidate);
+    const isValid = await formMethods.trigger(fieldsToValidate);
+    console.log("Validation result:", isValid);
+
+    if (isValid) {
+      console.log("Validation passed, moving to step", currentStep + 1);
+      setCurrentStep((prev) => {
+        console.log("Updating step from", prev, "to", prev + 1);
+        return prev + 1;
+      });
+    } else {
+      console.log("Validation failed, showing error");
+      console.log("Form errors:", formMethods.formState.errors);
+      toast({
+        title: "Please fix the highlighted fields",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleBack = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const handleSubmit = async () => {
+  const handleFinalSubmit = async (data: Profile) => {
     try {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
+      if (!user) throw new Error("Not authenticated");
 
-      // Clean up the profile data before sending
-      const cleanProfile = {
-        role,
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone_number: formData.phone_number,
-        date_of_birth: formData.date_of_birth || null,
-        nationality: formData.nationality,
-        languages: formData.languages,
-        bio: formData.bio,
+      // Check for existing profile first
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select()
+        .eq("user_id", user.id)
+        .single();
+
+      // Clean date fields before submission
+      const cleanedData = {
+        ...data,
         profile_complete: true,
-
-        // Host fields - only include if they have values
-        ...(formData.address && { address: formData.address }),
-        ...(formData.city && { city: formData.city }),
-        ...(formData.prefecture && { prefecture: formData.prefecture }),
-        ...(formData.postal_code && { postal_code: formData.postal_code }),
-        ...(formData.accommodation_type && {
-          accommodation_type: formData.accommodation_type,
-        }),
-        ...(formData.room_type && { room_type: formData.room_type }),
-        ...(formData.max_guests && { max_guests: formData.max_guests }),
-        ...(formData.amenities?.length && { amenities: formData.amenities }),
-        ...(formData.house_rules?.length && {
-          house_rules: formData.house_rules,
-        }),
-        ...(formData.available_from && {
-          available_from: formData.available_from,
-        }),
-        ...(formData.available_to && { available_to: formData.available_to }),
-        ...(formData.pricing && {
-          pricing: formData.pricing,
-        }),
-        ...(formData.meal_plan && {
-          meal_plan: formData.meal_plan,
-        }),
-        ...(formData.license_number && {
-          license_number: formData.license_number,
-        }),
-        ...(formData.license_expiry && {
-          license_expiry: formData.license_expiry,
-        }),
-
-        // Guest fields - only include if they have values
-        ...(formData.study_purpose && {
-          study_purpose: formData.study_purpose,
-        }),
-        ...(formData.planned_duration && {
-          planned_duration: formData.planned_duration,
-        }),
-        ...(formData.dietary_restrictions?.length && {
-          dietary_restrictions: formData.dietary_restrictions,
-        }),
-        ...(formData.preferred_location?.length && {
-          preferred_location: formData.preferred_location,
-        }),
-        ...(formData.start_date && { start_date: formData.start_date }),
-        ...(formData.budget_min && { budget_min: formData.budget_min }),
-        ...(formData.budget_max && { budget_max: formData.budget_max }),
+        license_expiry: data.license_expiry || null,
+        stay_purpose: data.stay_purpose || null,
+        dietary_restrictions: data.dietary_restrictions || null,
       };
 
-      console.log("Updating profile with:", cleanProfile);
+      const { error } = existingProfile
+        ? await supabase
+            .from("profiles")
+            .update(cleanedData)
+            .eq("user_id", user.id)
+        : await supabase.from("profiles").insert(cleanedData);
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .update(cleanProfile)
-        .eq("user_id", user.id)
-        .select();
+      if (error) throw error;
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
-      }
-
-      console.log("Update response:", data);
+      // Refresh auth session to get updated claims
+      await supabase.auth.refreshSession();
 
       toast({
-        title: "Profile Created!",
-        description: "Your profile has been successfully set up.",
+        title: "Profile Created Successfully!",
+        description: "Your host profile is now active",
+        variant: "default",
       });
 
-      localStorage.removeItem(PROFILE_SETUP.FORM_DATA);
-      localStorage.removeItem(PROFILE_SETUP.ROLE);
       navigate("/dashboard");
-    } catch (error: unknown) {
-      console.error("Full error:", error);
-
-      if (error instanceof Error) {
-        toast({
-          title: "Error",
-          description: `Failed to update profile: ${error.message}`,
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "An unknown error occurred while updating profile",
-          variant: "destructive",
-        });
-      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({ variant: "destructive", title: "Submission failed" });
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (formMethods.formState.isSubmitSuccessful) {
+        localStorage.removeItem(PROFILE_SETUP.FORM_DATA);
+        localStorage.removeItem(PROFILE_SETUP.ROLE);
+      }
+    };
+  }, [formMethods.formState.isSubmitSuccessful]);
 
   const renderStep = () => {
     switch (currentStep) {
       case 0:
         return (
-          <RoleSelection role={role} setRole={setRole} onNext={handleNext} />
+          <RoleSelection
+            setRole={setRole}
+            onNext={(selectedRole) => {
+              setRole(selectedRole);
+              localStorage.setItem(
+                PROFILE_SETUP.ROLE,
+                JSON.stringify(selectedRole)
+              );
+              handleNext();
+            }}
+            role={role}
+          />
         );
       case 1:
-        return (
-          <BasicInfo
-            formData={formData}
-            setFormData={setFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        );
+        return <BasicInfo onNext={handleNext} onBack={handleBack} />;
       case 2:
-        return role === "host" ? (
-          <HostDetails
-            formData={formData}
-            setFormData={setFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
-        ) : (
-          <GuestDetails
-            formData={formData}
-            setFormData={setFormData}
-            onNext={handleNext}
-            onBack={handleBack}
-          />
+        return (
+          <FormProvider {...formMethods}>
+            {role === "host" ? (
+              <HostDetails onNext={handleNext} onBack={handleBack} />
+            ) : (
+              <GuestDetails onNext={handleNext} onBack={handleBack} />
+            )}
+          </FormProvider>
         );
       case 3:
         return (
           <ReviewSubmit
-            formData={formData}
-            role={role!}
-            onSubmit={handleSubmit}
+            role={role}
+            onSubmit={handleFinalSubmit}
             onBack={handleBack}
           />
         );
@@ -241,20 +237,21 @@ const ProfileSetup = () => {
   return (
     <>
       <Header />
-      <div className="min-h-screen bg-gray-50 py-12">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12">
         <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
             <div className="mb-8">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold">Profile Setup</h2>
-                <span className="text-sm text-gray-500">
+                <h2 className="text-2xl font-bold dark:text-white">
+                  Profile Setup
+                </h2>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
                   Step {currentStep + 1} of {totalSteps}
                 </span>
               </div>
-              <Progress value={progress} className="h-2" />
+              <Progress value={progress} className="h-2 dark:bg-gray-700" />
             </div>
-
-            {renderStep()}
+            <FormProvider {...formMethods}>{renderStep()}</FormProvider>
           </div>
         </div>
       </div>

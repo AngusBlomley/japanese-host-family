@@ -27,11 +27,16 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
   const { toast } = useToast();
 
   const fetchListings = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
     try {
       const { data, error } = await supabase
         .from("listings")
         .select("*")
-        .eq("host_id", profile.id)
+        .eq("host_id", user.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -79,7 +84,7 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
 
   useEffect(() => {
     fetchListings();
-  }, [profile.id]);
+  }, [profile.user_id]);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -114,6 +119,8 @@ const HostDashboard = ({ profile }: HostDashboardProps) => {
               key={listing.id}
               listing={listing}
               onDelete={(id) => setListingToDelete(id)}
+              onEdit={(id) => navigate(`/listings/edit/${id}`)}
+              showSaveButton={false}
             />
           ))}
         </div>

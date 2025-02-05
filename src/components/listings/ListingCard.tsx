@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Star, ChevronLeft, ChevronRight, Trash2, Pencil } from "lucide-react";
 import { formatPrice } from "@/lib/pricing";
 import type { Listing } from "@/types/user";
 import { useToast } from "@/components/ui/use-toast";
@@ -74,12 +74,14 @@ const ImageCarousel = ({ images }: { images: string[] }) => {
 interface ListingCardProps {
   listing: Listing;
   onDelete?: (id: string) => void;
+  onEdit?: (id: string) => void;
   showSaveButton?: boolean;
 }
 
 const ListingCard = ({
   listing,
   onDelete,
+  onEdit,
   showSaveButton = true,
 }: ListingCardProps) => {
   const navigate = useNavigate();
@@ -163,95 +165,106 @@ const ListingCard = ({
   };
 
   return (
-    <Card
-      className="flex flex-col md:flex-row w-full hover:shadow-lg transition-shadow cursor-pointer"
-      onClick={() => navigate(`/listings/${listing.id}`)}
-    >
-      <div className="md:w-1/3 relative">
-        {listing.images && listing.images.length > 0 && (
-          <ImageCarousel images={listing.images} />
+    <div className="relative">
+      <div className="absolute top-2 right-2 flex gap-2">
+        {onEdit && (
+          <Button
+            variant="secondary"
+            size="icon"
+            onClick={() => onEdit(listing.id)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
+        {onDelete && (
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={() => onDelete(listing.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         )}
       </div>
-      <div className="flex-1 p-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-xl font-semibold">{listing.title}</h3>
-            <p className="text-sm text-gray-500 mt-1">
-              {listing.city}, {listing.prefecture}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(listing.id);
-                }}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
-            {showSaveButton && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="bg-gray-100 hover:bg-gray-200"
-                onClick={handleSave}
-                disabled={isSaving}
-              >
-                <Star
-                  className={`${isSaved ? "fill-yellow-400" : "fill-none"}`}
-                />
-              </Button>
-            )}
-          </div>
-        </div>
-
-        <div className="mt-4 space-y-2">
-          <p className="text-sm text-gray-600 line-clamp-2">
-            {listing.description}
-          </p>
-          <div className="flex items-center gap-4">
-            <p className="text-lg font-semibold">
-              {formatPrice(listing.pricing.base_rate, listing.pricing.type)}
-            </p>
-            <span className="text-sm text-gray-500">•</span>
-            <p className="text-sm">
-              {listing.room_type === "private" ? "Private Room" : "Shared Room"}
-            </p>
-            <span className="text-sm text-gray-500">•</span>
-            <p className="text-sm">Max {listing.max_guests} guests</p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {listing.amenities.slice(0, 3).map((amenity) => (
-            <Badge key={amenity} variant="secondary">
-              {amenity}
-            </Badge>
-          ))}
-          {listing.amenities.length > 3 && (
-            <Badge variant="secondary">
-              +{listing.amenities.length - 3} more
-            </Badge>
+      <Card
+        className="flex flex-col md:flex-row w-full hover:shadow-lg transition-shadow cursor-pointer"
+        onClick={() => navigate(`/listings/${listing.id}`)}
+      >
+        <div className="md:w-1/3 relative">
+          {listing.images && listing.images.length > 0 && (
+            <ImageCarousel images={listing.images} />
           )}
         </div>
-
-        <div className="mt-4 pt-4 border-t">
-          <div className="flex justify-between items-center">
-            <div className="text-sm text-gray-500">
-              Status: <span className="capitalize">{listing.status}</span>
+        <div className="flex-1 p-6">
+          <div className="flex justify-between items-start">
+            <div>
+              <h3 className="text-xl font-semibold">{listing.title}</h3>
+              <p className="text-sm text-gray-500 mt-1">
+                {listing.city}, {listing.prefecture}
+              </p>
             </div>
-            <div className="text-sm text-gray-500">
-              Available from:{" "}
-              {new Date(listing.available_from).toLocaleDateString()}
+            <div className="flex gap-2">
+              {showSaveButton && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="bg-gray-100 hover:bg-gray-200"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  <Star
+                    className={`${isSaved ? "fill-yellow-400" : "fill-none"}`}
+                  />
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-4 space-y-2">
+            <p className="text-sm text-gray-600 line-clamp-2">
+              {listing.description}
+            </p>
+            <div className="flex items-center gap-4">
+              <p className="text-lg font-semibold">
+                {formatPrice(listing.pricing.base_rate)}
+              </p>  
+              <span className="text-sm text-gray-500">•</span>
+              <p className="text-sm">
+
+                {listing.room_type === "private" ? "Private Room" : "Shared Room"}
+              </p>
+              <span className="text-sm text-gray-500">•</span>
+              <p className="text-sm">Max {listing.max_guests} guests</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-wrap gap-2">
+            {listing.amenities.slice(0, 3).map((amenity) => (
+              <Badge key={amenity} variant="secondary">
+                {amenity}
+              </Badge>
+            ))}
+            {listing.amenities.length > 3 && (
+              <Badge variant="secondary">
+                +{listing.amenities.length - 3} more
+              </Badge>
+            )}
+          </div>
+
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex justify-between items-center">
+              <div className="text-sm text-gray-500">
+                Status: <span className="capitalize">{listing.status}</span>
+              </div>
+              <div className="text-sm text-gray-500">
+                Available from:{" "}
+                {new Date(listing.available_from).toLocaleDateString()}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 };
 

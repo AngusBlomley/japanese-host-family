@@ -37,12 +37,14 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
 
       const {
         data: { publicUrl },
-      } = supabase.storage.from("avatars").getPublicUrl(fileName);
+      } = await supabase.storage.from("avatars").getPublicUrl(fileName);
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl })
         .eq("id", profile.id);
+
+      if (updateError) throw updateError;
 
       setAvatarUrl(publicUrl);
       toast({
@@ -173,47 +175,17 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
           </h3>
           <div className="grid grid-cols-2 gap-6">
             <div>
-              <h4 className="text-sm font-medium text-gray-500">Location</h4>
-              <p>{profile.address}</p>
-              <p>
-                {profile.city}, {profile.prefecture}
-              </p>
-              <p>{profile.postal_code}</p>
-            </div>
-            <div>
               <h4 className="text-sm font-medium text-gray-500">
-                Accommodation Details
+                License Number
               </h4>
-              <p>Type: {profile.accommodation_type}</p>
-              <p>Room Type: {profile.room_type}</p>
-              <p>Max Guests: {profile.max_guests}</p>
+              <p>{profile.license_number}</p>
             </div>
-            {profile.amenities && (
-              <div className="col-span-2">
-                <h4 className="text-sm font-medium text-gray-500 mb-2">
-                  Amenities
+            {profile.license_expiry && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-500">
+                  License Expiry
                 </h4>
-                <div className="flex flex-wrap gap-2">
-                  {profile.amenities.map((amenity) => (
-                    <Badge key={amenity} variant="secondary">
-                      {amenity}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-            {profile.house_rules && (
-              <div className="col-span-2">
-                <h4 className="text-sm font-medium text-gray-500 mb-2">
-                  House Rules
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {profile.house_rules.map((rule) => (
-                    <Badge key={rule} variant="outline">
-                      {rule}
-                    </Badge>
-                  ))}
-                </div>
+                <p>{new Date(profile.license_expiry).toLocaleDateString()}</p>
               </div>
             )}
           </div>
@@ -238,15 +210,9 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <h4 className="text-sm font-medium text-gray-500">
-                Study Purpose
+                Stay Purpose
               </h4>
-              <p>{profile.study_purpose}</p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-500">
-                Planned Duration
-              </h4>
-              <p>{profile.planned_duration} months</p>
+              <p>{profile.stay_purpose}</p>
             </div>
             {profile.dietary_restrictions && (
               <div className="col-span-2">
@@ -262,14 +228,6 @@ export const PersonalInfo = ({ profile }: PersonalInfoProps) => {
                 </div>
               </div>
             )}
-            <div className="col-span-2">
-              <h4 className="text-sm font-medium text-gray-500">Budget</h4>
-              <p>
-                {profile.budget_min?.toLocaleString()} -{" "}
-                {profile.budget_max?.toLocaleString()} yen per{" "}
-                {profile.budget_period}
-              </p>
-            </div>
           </div>
         </Card>
       )}

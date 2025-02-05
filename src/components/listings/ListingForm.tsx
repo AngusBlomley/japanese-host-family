@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,8 +24,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ImagePlus, X } from "lucide-react";
+import { ImagePlus, X, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Listing } from "@/types/user";
 
 const listingSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -54,18 +55,9 @@ const listingSchema = z.object({
   available_from: z.string(),
   available_to: z.string(),
   images: z
-    .array(z.instanceof(File))
-    .optional()
-    .refine((files) => {
-      if (!files || files.length === 0) return true;
-      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-      return files.every((file) => file.size <= MAX_FILE_SIZE);
-    }, "Each image must be less than 10MB")
-    .refine((files) => !files || files.length <= 8, "Maximum 8 images allowed")
-    .refine(
-      (files) => !files || files.length >= 3,
-      "Minimum 3 images required"
-    ),
+    .array(z.union([z.instanceof(File), z.string()]))
+    .refine((files) => files.length >= 3, "Minimum 3 images required")
+    .refine((files) => files.length <= 8, "Maximum 8 images allowed"),
   location: z
     .object({
       latitude: z.number(),
@@ -107,63 +99,189 @@ const houseRules = [
   "Shared Cleaning Duties",
 ];
 
-const ListingForm = () => {
+interface ListingFormProps {
+  initialData?: Listing | null;
+}
+
+const ListingForm = ({ initialData }: ListingFormProps) => {
+  const { toast } = useToast();
   const navigate = useNavigate();
-  const [images, setImages] = useState<ImagePreview[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{
     total: number;
     current: number;
     status: string;
-  }>({
-    total: 0,
-    current: 0,
-    status: "",
-  });
-  const { toast } = useToast();
+  }>({ total: 0, current: 0, status: "" });
 
   const form = useForm<z.infer<typeof listingSchema>>({
     resolver: zodResolver(listingSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      address: "",
-      city: "",
-      prefecture: "",
-      postal_code: "",
-      amenities: [],
-      house_rules: [],
-      available_from: "",
-      available_to: "",
-      pricing: {
-        type: "monthly" as const,
-        base_rate: 0,
-        includes: {
-          breakfast: false,
-          lunch: false,
-          dinner: false,
-          utilities: false,
-          wifi: false,
-          laundry: false,
+    defaultValues: initialData
+      ? {
+          ...initialData,
+          available_from: initialData.available_from.split("T")[0],
+          available_to: initialData.available_to.split("T")[0],
+          images: undefined, // We'll handle existing images separately
+        }
+      : {
+          title: "",
+          description: "",
+          address: "",
+          city: "",
+          prefecture: "",
+          postal_code: "",
+          amenities: [],
+          house_rules: [],
+          available_from: "",
+          available_to: "",
+          pricing: {
+            type: "monthly" as const,
+            base_rate: 0,
+            includes: {
+              breakfast: false,
+              lunch: false,
+              dinner: false,
+              utilities: false,
+              wifi: false,
+              laundry: false,
+            },
+          },
+          room_type: "private" as const,
+          meal_plan: "none" as const,
+          max_guests: 1,
+          status: "published" as const,
+          location: {
+            latitude: 0,
+            longitude: 0,
+          },
+          student_requirements: {
+            min_age: undefined,
+            max_age: undefined,
+            language_level: "",
+            minimum_stay_weeks: undefined,
+          },
+          images: undefined,
         },
-      },
-      room_type: "private" as const,
-      meal_plan: "none" as const,
-      max_guests: 1,
-      status: "published" as const,
-      location: {
-        latitude: 0,
-        longitude: 0,
-      },
-      student_requirements: {
-        min_age: undefined,
-        max_age: undefined,
-        language_level: "",
-        minimum_stay_weeks: undefined,
-      },
-      images: undefined,
-    },
+    mode: "onChange", // Validate on change
   });
+
+  useEffect(() => {
+    if (initialData) {
+      // Convert database format to form format
+      const formData = {
+        ...initialData,
+        available_from: initialData.available_from.split("T")[0],
+        available_to: initialData.available_to.split("T")[0],
+        amenities: initialData.amenities || [],
+        house_rules: initialData.house_rules || [],
+        pricing: {
+          ...initialData.pricing,
+          includes: initialData.pricing.includes || {
+            breakfast: false,
+            lunch: false,
+            dinner: false,
+            utilities: false,
+            wifi: false,
+            laundry: false,
+          },
+        },
+      };
+      form.reset(formData);
+    }
+  }, [initialData, form]);
+
+  useEffect(() => {
+    if (initialData?.images) {
+      setImages(
+        initialData.images.map((url) => ({
+          url,
+          file: new File([], url.split("/").pop() || "image.jpg"),
+        }))
+      );
+    }
+  }, [initialData]);
+
+  const handleSubmit = async (values: z.infer<typeof listingSchema>) => {
+    try {
+      setIsUploading(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast({ title: "Authentication required", variant: "destructive" });
+        return;
+      }
+
+      // Check if profile exists
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) {
+        toast({
+          title: "Complete Profile Required",
+          description: "Please finish setting up your profile first",
+          variant: "destructive",
+        });
+        navigate("/profile-setup");
+        return;
+      }
+
+      // Handle image uploads
+      const uploadedImageUrls = [
+        ...(initialData?.images?.filter((img) => typeof img === "string") ||
+          []), // Keep existing URLs
+        ...(await handleImageUpload(
+          values.images?.filter((img) => img instanceof File) || []
+        )),
+      ];
+
+      const listingData = {
+        ...values,
+        host_id: user.id,
+        images: uploadedImageUrls,
+        status: values.status || "published",
+      };
+
+      if (initialData) {
+        // Update existing listing
+        const { error } = await supabase
+          .from("listings")
+          .update(listingData)
+          .eq("id", initialData.id);
+
+        if (error) throw error;
+        toast({
+          title: "Success! 🎉",
+          description: `Your listing "${values.title}" has been updated successfully`,
+        });
+      } else {
+        // Create new listing
+        const { error } = await supabase.from("listings").insert([listingData]);
+        if (error) throw error;
+        toast({
+          title: "Congratulations!",
+          description: `${values.title} has been created successfully`,
+        });
+      }
+
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Oops! Something went wrong 😞",
+        description:
+          "We couldn't save your listing. Please check the form for errors.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const [images, setImages] = useState<ImagePreview[]>([]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -202,132 +320,84 @@ const ListingForm = () => {
   const removeImage = (index: number) => {
     setImages((prev) => {
       const newImages = [...prev];
-      URL.revokeObjectURL(newImages[index].url); // Clean up object URL
+      URL.revokeObjectURL(newImages[index].url);
       newImages.splice(index, 1);
       return newImages;
     });
   };
 
-  const onSubmit = async (values: z.infer<typeof listingSchema>) => {
+  const handleImageUpload = async (files: File[]) => {
     try {
-      if (images.length < 3) {
-        toast({
-          title: "Error",
-          description: "Please upload at least 3 images",
-          variant: "destructive",
-        });
-        return;
+      setUploadProgress({
+        total: files.length,
+        current: 0,
+        status: "Uploading images...",
+      });
+      const uploadedUrls = [];
+
+      for (const file of files) {
+        const fileName = `${Date.now()}-${file.name}`;
+        const { error } = await supabase.storage
+          .from("listing-images")
+          .upload(fileName, file);
+
+        if (error) throw error;
+
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("listing-images").getPublicUrl(fileName);
+
+        uploadedUrls.push(publicUrl);
+        setUploadProgress((prev) => ({
+          ...prev,
+          current: prev.current + 1,
+          status: `Uploaded ${prev.current + 1}/${prev.total} images`,
+        }));
       }
 
-      setIsUploading(true);
-      setUploadProgress({
-        total: images.length,
-        current: 0,
-        status: "Preparing to upload images...",
-      });
-
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!profile) throw new Error("Profile not found");
-
-      // Upload images with progress
-      setUploadProgress((prev) => ({ ...prev, status: "Uploading images..." }));
-      const imageUrls = await Promise.all(
-        images.map(async ({ file }, index) => {
-          try {
-            const fileExt = file.name.split(".").pop();
-            const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-            const filePath = `${profile.id}/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-              .from("listings")
-              .upload(filePath, file, {
-                cacheControl: "3600",
-                upsert: false,
-              });
-
-            if (uploadError) throw uploadError;
-
-            const {
-              data: { publicUrl },
-            } = supabase.storage.from("listings").getPublicUrl(filePath);
-
-            setUploadProgress((prev) => ({
-              ...prev,
-              current: index + 1,
-            }));
-
-            return publicUrl;
-          } catch (error) {
-            console.error("Error processing image:", error);
-            throw error;
-          }
-        })
-      );
-
-      setUploadProgress((prev) => ({ ...prev, status: "Creating listing..." }));
-
-      const listingData = {
-        ...values,
-        host_id: profile.id,
-        images: imageUrls,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase.from("listings").insert(listingData);
-
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Listing created successfully",
-      });
-
-      navigate("/dashboard");
+      return uploadedUrls;
     } catch (error) {
-      console.error("Error creating listing:", error);
+      console.error("Image upload error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to create listing",
+        title: "Image Upload Failed",
+        description: "Could not upload one or more images",
         variant: "destructive",
       });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress({
-        total: 0,
-        current: 0,
-        status: "",
-      });
+      return [];
     }
   };
 
+  const RequiredLabel = ({ label }: { label: string }) => (
+    <span>
+      {label} <span className="text-red-500">*</span>
+    </span>
+  );
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title</FormLabel>
+              <FormLabel>
+                <RequiredLabel label="Title" />
+              </FormLabel>
               <FormControl>
                 <Input
                   placeholder="Cozy room in central Tokyo"
                   {...field}
-                  value={field.value || ""}
+                  className={
+                    form.formState.errors.title ? "border-red-500" : ""
+                  }
                 />
               </FormControl>
-              <FormMessage />
+              {form.formState.errors.title && (
+                <FormMessage className="text-red-500 text-sm">
+                  {form.formState.errors.title.message}
+                </FormMessage>
+              )}
             </FormItem>
           )}
         />
@@ -337,7 +407,9 @@ const ListingForm = () => {
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>
+                <RequiredLabel label="Description" />
+              </FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Describe your space..."
@@ -345,7 +417,11 @@ const ListingForm = () => {
                   {...field}
                 />
               </FormControl>
-              <FormMessage />
+              {form.formState.errors.description && (
+                <FormMessage className="text-red-500 text-sm">
+                  {form.formState.errors.description.message}
+                </FormMessage>
+              )}
             </FormItem>
           )}
         />
@@ -356,11 +432,17 @@ const ListingForm = () => {
             name="address"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Address</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Address" />
+                </FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.address && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.address.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -370,11 +452,17 @@ const ListingForm = () => {
             name="city"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>City</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="City" />
+                </FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.city && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.city.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -384,11 +472,17 @@ const ListingForm = () => {
             name="prefecture"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Prefecture</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Prefecture" />
+                </FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.prefecture && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.prefecture.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -398,11 +492,17 @@ const ListingForm = () => {
             name="postal_code"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Postal Code</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Postal Code" />
+                </FormLabel>
                 <FormControl>
                   <Input {...field} />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.postal_code && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.postal_code.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -412,7 +512,9 @@ const ListingForm = () => {
             name="max_guests"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Maximum Guests</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Maximum Guests" />
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="number"
@@ -420,7 +522,11 @@ const ListingForm = () => {
                     onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.max_guests && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.max_guests.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -435,7 +541,9 @@ const ListingForm = () => {
               name="pricing.type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Payment Period</FormLabel>
+                  <FormLabel>
+                    <RequiredLabel label="Payment Period" />
+                  </FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
@@ -448,7 +556,11 @@ const ListingForm = () => {
                       <SelectItem value="monthly">Monthly</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  {form.formState.errors.pricing && (
+                    <FormMessage className="text-red-500 text-sm">
+                      {form.formState.errors.pricing.message}
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -458,7 +570,13 @@ const ListingForm = () => {
               name="pricing.base_rate"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Base Rate (¥)</FormLabel>
+                  <FormLabel>
+                    <RequiredLabel
+                      label={`Base Rate (per ${form.getValues(
+                        "pricing.type"
+                      )})`}
+                    />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -466,7 +584,11 @@ const ListingForm = () => {
                       onChange={(e) => field.onChange(Number(e.target.value))}
                     />
                   </FormControl>
-                  <FormMessage />
+                  {form.formState.errors.pricing && (
+                    <FormMessage className="text-red-500 text-sm">
+                      {form.formState.errors.pricing.message}
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -477,7 +599,9 @@ const ListingForm = () => {
             name="meal_plan"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Meal Plan</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Meal Plan" />
+                </FormLabel>
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -498,7 +622,11 @@ const ListingForm = () => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                <FormMessage />
+                {form.formState.errors.meal_plan && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.meal_plan.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -577,10 +705,11 @@ const ListingForm = () => {
               {images.length} / 8 images
             </span>
           </div>
-          <FormMessage>
-            {form.formState.errors.images &&
-              form.formState.errors.images.message}
-          </FormMessage>
+          {form.formState.errors.images && (
+            <FormMessage className="text-red-500 text-sm">
+              {form.formState.errors.images.message}
+            </FormMessage>
+          )}
         </div>
 
         <FormField
@@ -588,7 +717,9 @@ const ListingForm = () => {
           name="room_type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Room Type</FormLabel>
+              <FormLabel>
+                <RequiredLabel label="Room Type" />
+              </FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select room type" />
@@ -598,7 +729,11 @@ const ListingForm = () => {
                   <SelectItem value="shared">Shared Room</SelectItem>
                 </SelectContent>
               </Select>
-              <FormMessage />
+              {form.formState.errors.room_type && (
+                <FormMessage className="text-red-500 text-sm">
+                  {form.formState.errors.room_type.message}
+                </FormMessage>
+              )}
             </FormItem>
           )}
         />
@@ -609,11 +744,17 @@ const ListingForm = () => {
             name="available_from"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Available From</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Available From" />
+                </FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.available_from && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.available_from.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -623,11 +764,17 @@ const ListingForm = () => {
             name="available_to"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Available To</FormLabel>
+                <FormLabel>
+                  <RequiredLabel label="Available To" />
+                </FormLabel>
                 <FormControl>
                   <Input type="date" {...field} />
                 </FormControl>
-                <FormMessage />
+                {form.formState.errors.available_to && (
+                  <FormMessage className="text-red-500 text-sm">
+                    {form.formState.errors.available_to.message}
+                  </FormMessage>
+                )}
               </FormItem>
             )}
           />
@@ -674,7 +821,11 @@ const ListingForm = () => {
                   />
                 ))}
               </div>
-              <FormMessage />
+              {form.formState.errors.amenities && (
+                <FormMessage className="text-red-500 text-sm">
+                  {form.formState.errors.amenities.message}
+                </FormMessage>
+              )}
             </FormItem>
           )}
         />
@@ -718,7 +869,11 @@ const ListingForm = () => {
                   />
                 ))}
               </div>
-              <FormMessage />
+              {form.formState.errors.house_rules && (
+                <FormMessage className="text-red-500 text-sm">
+                  {form.formState.errors.house_rules.message}
+                </FormMessage>
+              )}
             </FormItem>
           )}
         />
@@ -732,7 +887,9 @@ const ListingForm = () => {
               name="student_requirements.min_age"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum Age</FormLabel>
+                  <FormLabel>
+                    <RequiredLabel label="Minimum Age" />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -744,7 +901,14 @@ const ListingForm = () => {
                       }
                     />
                   </FormControl>
-                  <FormMessage />
+                  {form.formState.errors.student_requirements && (
+                    <FormMessage className="text-red-500 text-sm">
+                      {
+                        form.formState.errors.student_requirements.min_age
+                          ?.message
+                      }
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -754,7 +918,9 @@ const ListingForm = () => {
               name="student_requirements.max_age"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Maximum Age</FormLabel>
+                  <FormLabel>
+                    <RequiredLabel label="Maximum Age" />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -766,7 +932,14 @@ const ListingForm = () => {
                       }
                     />
                   </FormControl>
-                  <FormMessage />
+                  {form.formState.errors.student_requirements && (
+                    <FormMessage className="text-red-500 text-sm">
+                      {
+                        form.formState.errors.student_requirements.max_age
+                          ?.message
+                      }
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -776,7 +949,9 @@ const ListingForm = () => {
               name="student_requirements.language_level"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Required Language Level</FormLabel>
+                  <FormLabel>
+                    <RequiredLabel label="Required Language Level" />
+                  </FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     defaultValue={field.value}
@@ -791,7 +966,14 @@ const ListingForm = () => {
                       <SelectItem value="fluent">Fluent</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormMessage />
+                  {form.formState.errors.student_requirements && (
+                    <FormMessage className="text-red-500 text-sm">
+                      {
+                        form.formState.errors.student_requirements
+                          .language_level?.message
+                      }
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -801,7 +983,9 @@ const ListingForm = () => {
               name="student_requirements.minimum_stay_weeks"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Minimum Stay (weeks)</FormLabel>
+                  <FormLabel>
+                    <RequiredLabel label="Minimum Stay (weeks)" />
+                  </FormLabel>
                   <FormControl>
                     <Input
                       type="number"
@@ -813,7 +997,14 @@ const ListingForm = () => {
                       }
                     />
                   </FormControl>
-                  <FormMessage />
+                  {form.formState.errors.student_requirements && (
+                    <FormMessage className="text-red-500 text-sm">
+                      {
+                        form.formState.errors.student_requirements
+                          .minimum_stay_weeks?.message
+                      }
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -856,9 +1047,11 @@ const ListingForm = () => {
           <Button type="submit" disabled={isUploading}>
             {isUploading ? (
               <div className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span>
+                <Loader2 className="h-4 w-4 animate-spin" />
                 {uploadProgress.status}
               </div>
+            ) : initialData ? (
+              "Update Listing"
             ) : (
               "Create Listing"
             )}

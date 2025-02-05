@@ -7,29 +7,39 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useFormContext } from "react-hook-form";
 
 interface ReviewSubmitProps {
-  formData: Profile;
   role: UserRole;
-  onSubmit: () => void;
+  onSubmit: (values: Profile) => Promise<void>;
   onBack: () => void;
 }
 
-const ReviewSubmit = ({
-  formData,
-  role,
-  onSubmit,
-  onBack,
-}: ReviewSubmitProps) => {
-  const renderValue = (value: unknown): string => {
-    if (Array.isArray(value)) {
-      return value.join(", ");
+const ReviewSubmit = ({ role, onSubmit, onBack }: ReviewSubmitProps) => {
+  const { getValues, formState } = useFormContext<Profile>();
+  const formData = getValues();
+
+  const renderValue = (
+    value: unknown,
+    key?: string,
+    parentKey?: string
+  ): string => {
+    if (typeof value === "object" && value !== null) {
+      if (Array.isArray(value)) return value.join(", ");
+      return JSON.stringify(value, null, 2);
     }
-    if (typeof value === "boolean") {
-      return value ? "Yes" : "No";
+    if (key === "meal_plan") {
+      return (
+        {
+          none: "No Meals",
+          breakfast_only: "Breakfast Only",
+          half_board: "Half Board (Breakfast & Dinner)",
+          full_board: "Full Board (All Meals)",
+        }[value as string] || String(value)
+      );
     }
-    if (value === null || value === undefined) {
-      return "Not specified";
+    if (key === "type" && parentKey === "pricing") {
+      return value === "weekly" ? "Weekly" : "Monthly";
     }
     return String(value);
   };
@@ -46,7 +56,7 @@ const ReviewSubmit = ({
               <dt className="font-medium text-gray-500 capitalize">
                 {key.replace(/([A-Z])/g, " $1").trim()}
               </dt>
-              <dd className="mt-1 text-gray-900">{renderValue(value)}</dd>
+              <dd className="mt-1 text-gray-900">{renderValue(value, key)}</dd>
             </div>
           ))}
         </dl>
@@ -62,36 +72,23 @@ const ReviewSubmit = ({
     nationality: formData.nationality,
     languages: formData.languages,
     bio: formData.bio,
+    avatar_url: formData.avatar_url,
   };
 
   const roleSpecificInfo =
     role === "host"
       ? {
-          address: formData.address,
-          city: formData.city,
-          prefecture: formData.prefecture,
-          postal_code: formData.postal_code,
           license_number: formData.license_number,
           license_expiry: formData.license_expiry,
-          accommodation_type: formData.accommodation_type,
-          room_type: formData.room_type,
-          max_guests: formData.max_guests,
-          amenities: formData.amenities,
-          house_rules: formData.house_rules,
-          available_from: formData.available_from,
-          available_to: formData.available_to,
-          pricing: formData.pricing,
-          meal_plan: formData.meal_plan,
         }
       : {
-          study_purpose: formData.study_purpose,
-          planned_duration: formData.planned_duration,
           dietary_restrictions: formData.dietary_restrictions,
-          preferred_location: formData.preferred_location,
-          start_date: formData.start_date,
-          budget_min: formData.budget_min,
-          budget_max: formData.budget_max,
         };
+
+  const handleSubmit = () => {
+    console.log("ReviewSubmit - Submitting profile data");
+    onSubmit(formData as Profile);
+  };
 
   return (
     <div className="space-y-6">
@@ -109,7 +106,15 @@ const ReviewSubmit = ({
         <Button variant="outline" onClick={onBack}>
           Back
         </Button>
-        <Button onClick={onSubmit}>Submit Profile</Button>
+        <Button
+          onClick={() => {
+            console.log("Submit button clicked");
+            handleSubmit();
+          }}
+          disabled={formState.isSubmitting}
+        >
+          {formState.isSubmitting ? "Submitting..." : "Submit Profile"}
+        </Button>
       </div>
     </div>
   );

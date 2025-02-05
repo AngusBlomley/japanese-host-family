@@ -113,6 +113,7 @@ const App = () => {
                 }
               />
               <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/listings/edit/:id" element={<NewListing />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Router>

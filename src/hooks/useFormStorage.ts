@@ -1,24 +1,39 @@
-import { Dispatch, SetStateAction, useCallback } from "react";
-import { PROFILE_SETUP,  } from "@/constants/storage";
-import { Profile } from "@/types/user";
+import { useState, useEffect } from "react";
+import { useFormContext } from "react-hook-form";
 
+export const useFormStorage = <T extends object>(key: string) => {
+  const { watch, reset } = useFormContext();
+  const [formData, setFormData] = useState<T>(() => {
+    const storedData = localStorage.getItem(key);
+    return storedData ? JSON.parse(storedData) : {};
+  });
 
-export const useFormStorage = (
-  setFormData: Dispatch<SetStateAction<Profile>>
-) => {
-  const updateForm = useCallback(
-    (field: keyof Profile, value: unknown) => {
-      setFormData((prev) => {
-        const newData = { ...prev, [field]: value };
-        localStorage.setItem(
-          PROFILE_SETUP.FORM_DATA,
-          JSON.stringify(newData)
-        );
-        return newData;
-      });
-    },
-    [setFormData]
-  );
+  const updateForm = (field: keyof T, value: T[keyof T]) => {
+    const newData = { ...formData, [field]: value };
+    localStorage.setItem(key, JSON.stringify(newData));
+    setFormData(newData);
+  };
 
-  return updateForm;
+  useEffect(() => {
+    const storedData = localStorage.getItem(key);
+    if (storedData) {
+      setFormData(JSON.parse(storedData));
+    }
+  }, [key]);
+
+  useEffect(() => {
+    const subscription = watch((value) => {
+      localStorage.setItem(key, JSON.stringify(value));
+    });
+    return () => subscription.unsubscribe();
+  }, [key, watch]);
+
+  useEffect(() => {
+    const storedData = localStorage.getItem(key);
+    if (storedData) {
+      reset(JSON.parse(storedData));
+    }
+  }, [reset, key]);
+
+  return { formData, updateForm };
 };
