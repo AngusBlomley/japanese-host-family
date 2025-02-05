@@ -9,15 +9,6 @@ import { Badge } from "@/components/ui/badge";
 import { Star, ArrowLeft, MessageCircle, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import ImageLightbox from "@/components/ui/image-lightbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -55,8 +46,6 @@ const ListingDetail = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number>(-1);
-  const [isContactDialogOpen, setIsContactDialogOpen] = useState(false);
-  const [message, setMessage] = useState("");
   const { user } = useAuth();
 
   useEffect(() => {
@@ -443,7 +432,7 @@ const ListingDetail = () => {
               {listing.student_requirements && (
                 <div className="border-t pt-6">
                   <h2 className="text-xl font-semibold mb-4">
-                    Student Requirements
+                    Guest Requirements
                   </h2>
                   <div className="grid grid-cols-2 gap-4">
                     {listing.student_requirements.min_age && (
@@ -500,39 +489,6 @@ const ListingDetail = () => {
               </div>
             </div>
           </div>
-
-          {/* Contact Host Dialog */}
-          <Dialog
-            open={isContactDialogOpen}
-            onOpenChange={setIsContactDialogOpen}
-          >
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Contact Host</DialogTitle>
-                <DialogDescription>
-                  Send a message to the host of this listing. They will respond
-                  to you directly.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Textarea
-                  placeholder="Write your message here..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="min-h-[150px]"
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsContactDialogOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button onClick={handleContactHost}>Send Message</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 

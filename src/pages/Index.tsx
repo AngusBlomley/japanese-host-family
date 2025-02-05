@@ -318,9 +318,10 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
         {listing.student_requirements && (
           <div className="mt-4 pt-4 border-t">
             <h4 className="text-sm font-medium text-gray-500">
-              Student Requirements
+              Guest Requirements
             </h4>
             <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
+
               {listing.student_requirements.min_age && (
                 <p>Min Age: {listing.student_requirements.min_age}</p>
               )}
