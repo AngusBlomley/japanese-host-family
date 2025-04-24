@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/context/ThemeContext";
-import { useLanguage } from "@/hooks/useLanguage";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SearchFilters {
@@ -321,7 +320,6 @@ const ListingCard = ({ listing }: { listing: Listing }) => {
               Guest Requirements
             </h4>
             <div className="mt-1 grid grid-cols-2 gap-2 text-sm">
-
               {listing.student_requirements.min_age && (
                 <p>Min Age: {listing.student_requirements.min_age}</p>
               )}
